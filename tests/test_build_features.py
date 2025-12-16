@@ -75,6 +75,7 @@ class TestBuildFeatures(unittest.TestCase):
             scaler = self._load_scaler(out["feature_scaler"])
             self.assertIn("brine_chemistry", scaler)
             self.assertIn("experimental_features", scaler)
+            self.assertIn("experimental_targets", scaler)
 
             # Experimental scaling: TDS/MLR from brines, Light from experiments.
             self.assertTrue(
@@ -85,7 +86,10 @@ class TestBuildFeatures(unittest.TestCase):
                 )
             )
 
-    def test_missing_feature_value_is_imputed_by_default(self):
+            # Targets are standardized in y_exp.npy.
+            self.assertTrue(np.allclose(y_exp[0], [-1.0, -1.0, -1.0], atol=1e-6))
+
+    def test_missing_feature_value_is_preserved_by_default(self):
         from src.constants import BRINE_FEATURE_COLUMNS, BRINES_DATASET
         from src.features.build_features import build_and_save_features
 
@@ -119,7 +123,9 @@ class TestBuildFeatures(unittest.TestCase):
 
             out = build_and_save_features(processed)
             x_lake = np.load(out["X_lake"])
-            self.assertFalse(np.isnan(x_lake).any())
+            cl_idx = list(BRINE_FEATURE_COLUMNS).index("Cl_gL")
+            self.assertTrue(np.isnan(x_lake[0, cl_idx]))
+            self.assertTrue(np.isfinite(x_lake[~np.isnan(x_lake)]).all())
 
 
 if __name__ == "__main__":

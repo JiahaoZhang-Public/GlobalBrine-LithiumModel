@@ -9,9 +9,17 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
-from src.constants import BRINE_FEATURE_COLUMNS
-from src.models.mae import TabularMAE, TabularMAEConfig
-from src.models.wandb_utils import init_wandb, log_wandb
+try:
+    from src.constants import BRINE_FEATURE_COLUMNS
+    from src.models.mae import TabularMAE, TabularMAEConfig
+    from src.models.wandb_utils import init_wandb, log_wandb
+except ModuleNotFoundError:  # pragma: no cover
+    import sys
+
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
+    from src.constants import BRINE_FEATURE_COLUMNS
+    from src.models.mae import TabularMAE, TabularMAEConfig
+    from src.models.wandb_utils import init_wandb, log_wandb
 
 
 @dataclass(frozen=True)
@@ -128,9 +136,9 @@ def save_checkpoint(
 )
 @click.option("--epochs", type=int, default=50, show_default=True)
 @click.option("--batch-size", type=int, default=128, show_default=True)
-@click.option("--lr", type=float, default=1e-3, show_default=True)
+@click.option("--lr", type=float, default=1e-4, show_default=True)
 @click.option("--weight-decay", type=float, default=1e-4, show_default=True)
-@click.option("--mask-ratio", type=float, default=0.4, show_default=True)
+@click.option("--mask-ratio", type=float, default=0.2, show_default=True)
 @click.option("--device", type=str, default="auto", show_default=True)
 @click.option("--seed", type=int, default=42, show_default=True)
 @click.option("--d-model", type=int, default=128, show_default=True)

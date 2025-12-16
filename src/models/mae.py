@@ -163,6 +163,19 @@ class TabularMAE(nn.Module):
     def pretrain_loss(
         self, x: torch.Tensor, *, mask_ratio: Optional[float] = None
     ) -> torch.Tensor:
+        """Compute the loss for the MAE model.
+        The loss is computed as the mean squared error of the predicted and target values, weighted by the loss mask.
+
+        Args:
+            x: The input tensor of shape [batch, num_features].
+            mask_ratio: The ratio of features to mask. If None, use the mask ratio from the config.
+
+        Returns:
+            The loss tensor.
+        """
+        if mask_ratio is None:
+            mask_ratio = self.config.mask_ratio
+        input_mask, loss_mask = build_effective_masks(x, mask_ratio=mask_ratio)
         token, missing_mask = self._tokens(x)
         ratio = self.config.mask_ratio if mask_ratio is None else mask_ratio
         input_mask, loss_mask = build_effective_masks(x, mask_ratio=ratio)

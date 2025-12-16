@@ -167,19 +167,19 @@ python src/data/make_dataset.py data/raw data/processed
 
 ### **build_features.py**
 
-This stage converts processed CSVs into **model-ready arrays** and a saved scaler.
+This stage converts processed CSVs into **normalized model-ready arrays** and a saved scaler.
 
 - Extract feature matrices:
     - X_lake (for MAE pretraining)
     - X_exp (for downstream training)
-- Extract experiment labels y_exp
+- Extract experiment labels y_exp (and standardize them for stable training)
 - Apply feature scaling:
     - Fit scaling stats on brine-chemistry features from `brines.csv` (`X_lake`)
     - Apply those stats to `X_lake`
     - For `X_exp`, reuse brine stats for shared chemistry features (`TDS_gL`, `MLR`)
       and fit `Light_kW_m2` stats from the experimental dataset
 - Missing values:
-    - Feature NaNs/blanks are imputed with per-feature mean by default (configurable)
+    - Blank feature cells are kept as `NaN` by default (so the MAE can treat them as missing)
     - Rows with missing targets in `experimental.csv` are dropped by default
 - Save arrays into `data/processed/`:
     - X_lake.npy
@@ -191,10 +191,10 @@ This isolates **feature engineering** from model code.
 
 ### **Outputs**
 
-- `data/processed/X_lake.npy` (float32, shape `[n_brines, 9]`)
-- `data/processed/X_exp.npy` (float32, shape `[n_experiments, 3]`)
-- `data/processed/y_exp.npy` (float32, shape `[n_experiments, 3]`)
-- `data/processed/feature_scaler.joblib` (scaler stats used for consistent inference)
+- `data/processed/X_lake.npy` (float32, standardized, shape `[n_brines, 9]`, may contain `NaN`)
+- `data/processed/X_exp.npy` (float32, standardized, shape `[n_experiments, 3]`, may contain `NaN`)
+- `data/processed/y_exp.npy` (float32, standardized targets, shape `[n_experiments, 3]`)
+- `data/processed/feature_scaler.joblib` (scaler stats for inputs + targets, used for inference de-normalization)
 
 ### **How to run**
 
@@ -208,6 +208,7 @@ Optional flags:
 python src/features/build_features.py data/processed --missing-features error
 python src/features/build_features.py data/processed --missing-features drop
 python src/features/build_features.py data/processed --missing-features zero
+python src/features/build_features.py data/processed --missing-features mean
 python src/features/build_features.py data/processed --missing-targets error
 ```
 

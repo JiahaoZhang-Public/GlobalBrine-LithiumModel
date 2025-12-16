@@ -96,3 +96,5 @@ target/
 
 # black
 .black_cache/
+
+wandb/
