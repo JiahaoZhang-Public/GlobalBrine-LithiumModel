@@ -48,7 +48,9 @@ class TestTabularMAE(unittest.TestCase):
         input_mask, loss_mask = build_effective_masks(x, mask_ratio=0.25, min_visible=1)
         self.assertTrue(input_mask[0, 0].item())
         self.assertTrue(input_mask[0, 2].item())
-        self.assertEqual(int(loss_mask.sum().item()), 0)
+        # mask_ratio applies on observed features only: F_obs=2 => floor(2*0.25)=0
+        # but we still mask 1 feature when possible to avoid zero-loss edge cases.
+        self.assertEqual(int(loss_mask.sum().item()), 1)
 
     def test_masking_ratio_applies_only_to_observed_features(self):
         from src.models.mae import build_effective_masks
@@ -71,6 +73,29 @@ class TestTabularMAE(unittest.TestCase):
         self.assertEqual(int(loss_mask2.sum().item()), 1)
         # input_mask includes 2 missing + 1 MAE mask = 3 total.
         self.assertEqual(int(input_mask2.sum().item()), 3)
+
+    def test_small_mask_ratio_still_masks_one_if_possible(self):
+        from src.models.mae import build_effective_masks
+
+        torch.manual_seed(0)
+        x = torch.tensor([[0.0, 1.0, 2.0, 3.0]], dtype=torch.float32)
+        input_mask, loss_mask = build_effective_masks(x, mask_ratio=0.1, min_visible=1)
+        self.assertEqual(int(loss_mask.sum().item()), 1)
+        self.assertEqual(int(input_mask.sum().item()), 1)
+
+    def test_zero_loss_is_differentiable_when_no_masked_positions(self):
+        from src.models.mae import TabularMAE, TabularMAEConfig
+
+        model = TabularMAE(
+            num_features=3,
+            config=TabularMAEConfig(d_model=16, n_heads=4, n_layers=1, mask_ratio=0.1),
+        )
+        x = torch.tensor(
+            [[float("nan"), float("nan"), float("nan")]], dtype=torch.float32
+        )
+        loss = model.pretrain_loss(x, mask_ratio=0.1)
+        self.assertTrue(torch.isfinite(loss).item())
+        loss.backward()
 
 
 if __name__ == "__main__":

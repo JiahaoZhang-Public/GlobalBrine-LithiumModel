@@ -78,6 +78,10 @@ target/
 # exclude data from source control by default
 /data/
 
+# Keep directory placeholders only (not actual datasets/artifacts)
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
 # Mac OS-specific storage files
 .DS_Store
 
@@ -98,3 +102,9 @@ target/
 .black_cache/
 
 wandb/
+
+# Model checkpoints
+models/mae_sweep/
+
+# slurm logs
+logs/

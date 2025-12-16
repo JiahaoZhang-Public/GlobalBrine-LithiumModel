@@ -72,8 +72,10 @@ def build_effective_masks(
         if f_obs == 0:
             continue
 
-        num_mask = int(math.floor(f_obs * mask_ratio))
         max_mask = max(0, f_obs - min_visible)
+        num_mask = int(math.floor(f_obs * mask_ratio))
+        if mask_ratio > 0 and num_mask == 0 and max_mask > 0:
+            num_mask = 1
         num_mask = min(num_mask, max_mask)
         if num_mask <= 0:
             continue
@@ -163,19 +165,7 @@ class TabularMAE(nn.Module):
     def pretrain_loss(
         self, x: torch.Tensor, *, mask_ratio: Optional[float] = None
     ) -> torch.Tensor:
-        """Compute the loss for the MAE model.
-        The loss is computed as the mean squared error of the predicted and target values, weighted by the loss mask.
-
-        Args:
-            x: The input tensor of shape [batch, num_features].
-            mask_ratio: The ratio of features to mask. If None, use the mask ratio from the config.
-
-        Returns:
-            The loss tensor.
-        """
-        if mask_ratio is None:
-            mask_ratio = self.config.mask_ratio
-        input_mask, loss_mask = build_effective_masks(x, mask_ratio=mask_ratio)
+        """MAE reconstruction loss on observed+masked positions."""
         token, missing_mask = self._tokens(x)
         ratio = self.config.mask_ratio if mask_ratio is None else mask_ratio
         input_mask, loss_mask = build_effective_masks(x, mask_ratio=ratio)
@@ -189,5 +179,5 @@ class TabularMAE(nn.Module):
         sq_err = (pred - target) ** 2
         denom = loss_mask.sum()
         if int(denom.item()) == 0:
-            return torch.zeros((), device=x.device, dtype=torch.float32)
+            return pred.sum() * 0.0
         return (sq_err[loss_mask].sum() / denom).to(dtype=torch.float32)
