@@ -3,6 +3,43 @@ GlobalBrine-LithiumModel
 
 Global ML model for lithium extraction metrics from brine chemistry and irradiance.
 
+Environment Setup
+------------
+
+### Prerequisites
+
+- Python >= 3.10 + `pip`
+- Optional: `conda`/`mamba` (for environment management)
+- Optional: `make` (to use the included `Makefile` shortcuts)
+
+### Option A: Conda/Mamba (recommended)
+
+```bash
+# defaults to PYTHON_VERSION=3.10 (override: make create_environment PYTHON_VERSION=3.11)
+make create_environment  
+conda activate global-brine-lithium-model
+make requirements
+```
+
+### Option B: `venv` (no conda)
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # Windows (PowerShell): .venv\Scripts\Activate.ps1
+python -m pip install -U pip setuptools wheel
+python -m pip install -r requirements.txt
+```
+
+### Verify the environment
+
+```bash
+make test_environment
+```
+
+### Environment variables
+
+Create a local `.env` file at the repo root for secrets/config (it is gitignored). Python scripts load it via `python-dotenv` (see `src/data/make_dataset.py`).
+
 Project Organization
 ------------
 
