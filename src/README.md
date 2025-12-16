@@ -42,6 +42,27 @@ Li_gL, Mg_gL, Na_gL, K_gL, Ca_gL, SO4_gL, Cl_gL, MLR, TDS_gL
 - 
 - Each feature is treated as a **continuous token**.
 - MAE masks a subset of these tokens and learns to **reconstruct the missing chemical values**.
+- Missing values (`NaN`) are treated as already-masked inputs and are **never** included in the reconstruction loss (no ground truth).
+
+### **MAE masking + loss (obs_mask vs mae_mask)**
+
+- **obs_mask**: whether a feature is observed (1=has value, 0=missing/NaN)
+- **mae_mask**: features randomly masked by MAE for this step (only sampled from observed features)
+
+Model input masking:
+
+```
+input_mask = (not obs_mask) OR mae_mask
+```
+
+Loss masking (only learn to reconstruct values we deliberately hid):
+
+```
+loss_mask = obs_mask AND mae_mask
+loss = ((recon - x_true)^2 * loss_mask).sum() / loss_mask.sum()
+```
+
+Mask ratio rule (per sample): apply `mask_ratio` on the **observed** feature set, and keep at least `min_visible` observed features unmasked (current default: `min_visible=1`) to avoid over-masking.
 - The encoder therefore learns:
     - The **chemical manifold** of natural brines
     - Relationships between ions
@@ -218,6 +239,33 @@ Runs the **two-stage training pipeline**:
 - Freezes the MAE encoder
 - Trains a small regression head using experimental labels
 - Outputs downstream_head.pth
+
+### **How to run (separated scripts)**
+
+Pretrain MAE:
+
+```bash
+python src/models/train_mae.py data/processed --out models/mae_pretrained.pth
+```
+
+Fine-tune regression head (encoder frozen by default):
+
+```bash
+python src/models/finetune_regression.py data/processed --mae models/mae_pretrained.pth --out models/downstream_head.pth
+```
+
+### **W&B tracking**
+
+Both scripts support optional W&B logging. Offline mode is the default to avoid requiring credentials.
+
+```bash
+python src/models/train_mae.py data/processed --wandb --wandb-mode offline
+python src/models/finetune_regression.py data/processed --wandb --wandb-mode offline
+```
+
+To log online, set `WANDB_API_KEY` and use `--wandb-mode online`.
+
+Note: the regression fine-tuning uses the MAE encoder on the brine-chemistry feature space; with the current `X_exp` schema (`TDS_gL`, `MLR`, `Light_kW_m2`), only `TDS_gL` and `MLR` are provided to the encoder and the remaining chemistry features are treated as missing. `Light_kW_m2` is concatenated to the latent vector before the regression head.
 
 ---
 

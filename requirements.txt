@@ -18,8 +18,8 @@ joblib
 
 # data science
 pandas
-numpy
 scikit-learn
 torch
 tqdm
 matplotlib
+wandb
