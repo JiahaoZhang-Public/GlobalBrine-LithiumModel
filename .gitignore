@@ -87,3 +87,12 @@ target/
 
 # Mypy cache
 .mypy_cache/
+
+# pytest
+.pytest_cache/
+
+# ruff
+.ruff_cache/
+
+# black
+.black_cache/
