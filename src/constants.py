@@ -20,7 +20,7 @@ def processed_data_dir() -> Path:
     return data_dir() / "processed"
 
 
-BRINE_FEATURE_COLUMNS: tuple[str, ...] = (
+BRINE_CHEMISTRY_COLUMNS: tuple[str, ...] = (
     "Li_gL",
     "Mg_gL",
     "Na_gL",
@@ -31,6 +31,8 @@ BRINE_FEATURE_COLUMNS: tuple[str, ...] = (
     "MLR",
     "TDS_gL",
 )
+
+BRINE_FEATURE_COLUMNS: tuple[str, ...] = BRINE_CHEMISTRY_COLUMNS + ("Light_kW_m2",)
 
 EXPERIMENTAL_FEATURE_COLUMNS: tuple[str, ...] = (
     "TDS_gL",
@@ -53,7 +55,7 @@ class DatasetSpec:
 
 BRINES_DATASET = DatasetSpec(
     filename="brines.csv",
-    required_columns=BRINE_FEATURE_COLUMNS,
+    required_columns=BRINE_CHEMISTRY_COLUMNS,
 )
 
 EXPERIMENTAL_DATASET = DatasetSpec(

@@ -15,6 +15,7 @@ except ModuleNotFoundError:  # pragma: no cover
 @unittest.skipIf(torch is None, "torch is required for finetune tests")
 class TestFinetuneRegression(unittest.TestCase):
     def test_finetune_runs_with_current_feature_shapes(self):
+        from src.constants import BRINE_FEATURE_COLUMNS
         from src.models.finetune_regression import (
             FinetuneConfig,
             finetune_regression_head,
@@ -23,7 +24,8 @@ class TestFinetuneRegression(unittest.TestCase):
         from src.models.regression_head import RegressionHeadConfig
 
         encoder = TabularMAE(
-            num_features=9, config=TabularMAEConfig(d_model=16, n_heads=4, n_layers=1)
+            num_features=len(BRINE_FEATURE_COLUMNS),
+            config=TabularMAEConfig(d_model=16, n_heads=4, n_layers=1),
         )
         x_exp = np.array(
             [
@@ -41,6 +43,7 @@ class TestFinetuneRegression(unittest.TestCase):
             head_config=RegressionHeadConfig(hidden_dim=8, n_layers=1, out_dim=3),
             finetune_config=FinetuneConfig(epochs=1, batch_size=2, device="cpu"),
             freeze_encoder=True,
+            mae_feature_names=list(BRINE_FEATURE_COLUMNS),
         )
         self.assertIsNotNone(head)
 

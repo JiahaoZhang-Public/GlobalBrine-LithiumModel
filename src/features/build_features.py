@@ -40,6 +40,11 @@ class FeatureBuildError(RuntimeError):
     pass
 
 
+def choose_brine_feature_columns(brines_csv: Path) -> tuple[str, ...]:
+    """Deprecated: Light_kW_m2 is now always part of BRINE_FEATURE_COLUMNS."""
+    return BRINE_FEATURE_COLUMNS
+
+
 def _fmt_float(value: float) -> str:
     if np.isnan(value):
         return "nan"
@@ -145,7 +150,8 @@ def fit_standard_scaler(
 
     mean = np.nanmean(matrix, axis=0).astype(np.float64)
     std = np.nanstd(matrix, axis=0).astype(np.float64)
-    std[std == 0] = 1.0
+    mean = np.where(np.isnan(mean), 0.0, mean)
+    std = np.where(np.isnan(std) | (std == 0), 1.0, std)
     return StandardScalerStats(
         feature_names=tuple(feature_names),
         mean=tuple(mean.tolist()),
@@ -232,12 +238,23 @@ def build_and_save_features(
     brines_path = processed_dir / BRINES_DATASET.filename
     experimental_path = processed_dir / EXPERIMENTAL_DATASET.filename
 
-    x_lake = load_csv_matrix(brines_path, BRINE_FEATURE_COLUMNS)
+    brine_feature_columns = BRINE_FEATURE_COLUMNS
+    x_lake = load_csv_matrix(brines_path, brine_feature_columns)
     x_exp = load_csv_matrix(experimental_path, EXPERIMENTAL_FEATURE_COLUMNS)
     y_exp = load_csv_matrix(experimental_path, EXPERIMENTAL_TARGET_COLUMNS)
 
+    if "Light_kW_m2" in brine_feature_columns:
+        light_idx = list(brine_feature_columns).index("Light_kW_m2")
+        if np.isnan(x_lake[:, light_idx]).all():
+            raise FeatureBuildError(
+                "brines.csv contains no usable Light_kW_m2 values. "
+                "Run `python src/data/make_dataset.py --light-geotiff ... "
+                "--light-scale 0.0416666667 data/raw data/processed` "
+                "to populate Light_kW_m2 from the GHI GeoTIFF."
+            )
+
     if print_stats:
-        _print_matrix_stats("X_lake (raw)", x_lake, BRINE_FEATURE_COLUMNS)
+        _print_matrix_stats("X_lake (raw)", x_lake, brine_feature_columns)
         _print_matrix_stats("X_exp (raw)", x_exp, EXPERIMENTAL_FEATURE_COLUMNS)
         _print_matrix_stats("y_exp (raw)", y_exp, EXPERIMENTAL_TARGET_COLUMNS)
 
@@ -254,18 +271,18 @@ def build_and_save_features(
         y_exp = y_exp[valid]
 
     stats_by_name: dict[str, StandardScalerStats] = {}
-    stats_by_name["brine_chemistry"] = fit_standard_scaler(
+    stats_by_name["brine_features"] = fit_standard_scaler(
         x_lake,
-        BRINE_FEATURE_COLUMNS,
+        brine_feature_columns,
     )
 
-    brine_feature_stats = _stats_map(stats_by_name["brine_chemistry"])
-    exp_light = x_exp[:, list(EXPERIMENTAL_FEATURE_COLUMNS).index("Light_kW_m2")]
-    light_mean = float(np.nanmean(exp_light, dtype=np.float64))
-    light_std = float(np.nanstd(exp_light, dtype=np.float64)) or 1.0
-
+    brine_feature_stats = _stats_map(stats_by_name["brine_features"])
     exp_feature_stats = dict(brine_feature_stats)
-    exp_feature_stats["Light_kW_m2"] = (light_mean, light_std)
+    if "Light_kW_m2" not in exp_feature_stats:
+        exp_light = x_exp[:, list(EXPERIMENTAL_FEATURE_COLUMNS).index("Light_kW_m2")]
+        light_mean = float(np.nanmean(exp_light, dtype=np.float64))
+        light_std = float(np.nanstd(exp_light, dtype=np.float64)) or 1.0
+        exp_feature_stats["Light_kW_m2"] = (light_mean, light_std)
     stats_by_name["experimental_features"] = StandardScalerStats(
         feature_names=EXPERIMENTAL_FEATURE_COLUMNS,
         mean=tuple(exp_feature_stats[n][0] for n in EXPERIMENTAL_FEATURE_COLUMNS),
@@ -298,7 +315,7 @@ def build_and_save_features(
     if missing_features == "mean":
         x_lake = np.where(
             np.isnan(x_lake),
-            np.asarray(stats_by_name["brine_chemistry"].mean, dtype=np.float32),
+            np.asarray(stats_by_name["brine_features"].mean, dtype=np.float32),
             x_lake,
         )
         x_exp = np.where(
@@ -315,7 +332,7 @@ def build_and_save_features(
 
     x_lake_scaled = transform_by_feature(
         x_lake,
-        BRINE_FEATURE_COLUMNS,
+        brine_feature_columns,
         brine_feature_stats,
         preserve_nan=preserve_nan,
     )
@@ -333,7 +350,7 @@ def build_and_save_features(
     y_exp_scaled = ((y_exp - y_mean) / y_std).astype(np.float32)
 
     if print_stats:
-        _print_matrix_stats("X_lake (normalized)", x_lake_scaled, BRINE_FEATURE_COLUMNS)
+        _print_matrix_stats("X_lake (normalized)", x_lake_scaled, brine_feature_columns)
         _print_matrix_stats(
             "X_exp (normalized)", x_exp_scaled, EXPERIMENTAL_FEATURE_COLUMNS
         )
@@ -353,7 +370,7 @@ def build_and_save_features(
     save_scaler_artifact(
         scaler_out,
         {
-            "brine_chemistry": stats_by_name["brine_chemistry"].as_dict(),
+            "brine_features": stats_by_name["brine_features"].as_dict(),
             "experimental_features": stats_by_name["experimental_features"].as_dict(),
             "experimental_targets": stats_by_name["experimental_targets"].as_dict(),
         },

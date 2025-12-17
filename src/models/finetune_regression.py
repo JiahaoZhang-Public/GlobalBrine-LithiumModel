@@ -57,6 +57,13 @@ def build_encoder_from_checkpoint(ckpt: dict[str, Any]) -> TabularMAE:
     return model
 
 
+def mae_feature_names_from_checkpoint(ckpt: dict[str, Any]) -> list[str]:
+    names = ckpt.get("feature_names", None)
+    if isinstance(names, list) and all(isinstance(n, str) for n in names):
+        return list(names)
+    return list(BRINE_FEATURE_COLUMNS)
+
+
 def finetune_regression_head(
     x_exp: np.ndarray,
     y_exp: np.ndarray,
@@ -65,6 +72,7 @@ def finetune_regression_head(
     head_config: RegressionHeadConfig | None = None,
     finetune_config: FinetuneConfig | None = None,
     freeze_encoder: bool = True,
+    mae_feature_names: list[str] | None = None,
     wandb_run=None,
 ) -> RegressionHead:
     head_config = head_config or RegressionHeadConfig(out_dim=y_exp.shape[1])
@@ -75,7 +83,15 @@ def finetune_regression_head(
 
     dev = _device(finetune_config.device)
     encoder = encoder.to(dev)
-    head = RegressionHead(in_dim=encoder.config.d_model + 1, config=head_config).to(dev)
+    encoder_features = (
+        list(mae_feature_names)
+        if mae_feature_names is not None
+        else list(BRINE_FEATURE_COLUMNS)
+    )
+    light_in_encoder = "Light_kW_m2" in encoder_features
+    concat_light = not light_in_encoder
+    head_in_dim = encoder.config.d_model + (1 if concat_light else 0)
+    head = RegressionHead(in_dim=head_in_dim, config=head_config).to(dev)
 
     x = torch.from_numpy(x_exp).to(dtype=torch.float32)
     y = torch.from_numpy(y_exp).to(dtype=torch.float32)
@@ -108,8 +124,15 @@ def finetune_regression_head(
     tds_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("TDS_gL")
     mlr_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("MLR")
     light_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("Light_kW_m2")
-    chem_tds = list(BRINE_FEATURE_COLUMNS).index("TDS_gL")
-    chem_mlr = list(BRINE_FEATURE_COLUMNS).index("MLR")
+    chem_tds = (
+        encoder_features.index("TDS_gL") if "TDS_gL" in encoder_features else None
+    )
+    chem_mlr = encoder_features.index("MLR") if "MLR" in encoder_features else None
+    chem_light = (
+        encoder_features.index("Light_kW_m2")
+        if "Light_kW_m2" in encoder_features
+        else None
+    )
 
     global_step = 0
     for _epoch in range(finetune_config.epochs):
@@ -127,8 +150,12 @@ def finetune_regression_head(
                 device=dev,
                 dtype=batch_x.dtype,
             )
-            chem[:, chem_tds] = batch_x[:, tds_idx]
-            chem[:, chem_mlr] = batch_x[:, mlr_idx]
+            if chem_tds is not None:
+                chem[:, chem_tds] = batch_x[:, tds_idx]
+            if chem_mlr is not None:
+                chem[:, chem_mlr] = batch_x[:, mlr_idx]
+            if chem_light is not None:
+                chem[:, chem_light] = batch_x[:, light_idx]
 
             if freeze_encoder:
                 with torch.no_grad():
@@ -136,8 +163,11 @@ def finetune_regression_head(
             else:
                 z = encoder.encode(chem)
 
-            light = batch_x[:, light_idx].unsqueeze(1)
-            pred = head(torch.cat([z, light], dim=1))
+            if concat_light:
+                light = batch_x[:, light_idx].unsqueeze(1)
+                pred = head(torch.cat([z, light], dim=1))
+            else:
+                pred = head(z)
             loss = loss_fn(pred, batch_y)
             optim.zero_grad(set_to_none=True)
             loss.backward()
@@ -172,6 +202,9 @@ def save_head_checkpoint(
     head_config: RegressionHeadConfig,
     finetune_config: FinetuneConfig,
     mae_checkpoint_path: str,
+    in_dim: int,
+    concat_light: bool,
+    mae_feature_names: list[str],
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
@@ -180,6 +213,9 @@ def save_head_checkpoint(
             "head_config": head_config.as_dict(),
             "finetune_config": finetune_config.as_dict(),
             "mae_checkpoint": mae_checkpoint_path,
+            "in_dim": int(in_dim),
+            "concat_light": bool(concat_light),
+            "mae_feature_names": list(mae_feature_names),
         },
         path,
     )
@@ -249,6 +285,9 @@ def main(
 
     ckpt = load_mae_checkpoint(Path(mae_path))
     encoder = build_encoder_from_checkpoint(ckpt)
+    mae_feature_names = mae_feature_names_from_checkpoint(ckpt)
+    concat_light = "Light_kW_m2" not in mae_feature_names
+    head_in_dim = encoder.config.d_model + (1 if concat_light else 0)
 
     head_config = RegressionHeadConfig(
         hidden_dim=hidden_dim,
@@ -276,6 +315,8 @@ def main(
             "num_features_encoder": int(encoder.num_features),
             "num_features_exp": int(x_exp.shape[1]),
             "num_targets": int(y_exp.shape[1]),
+            "concat_light": bool(concat_light),
+            "mae_feature_names": list(mae_feature_names),
             **ckpt.get("mae_config", {}),
             **head_config.as_dict(),
             **finetune_config.as_dict(),
@@ -290,6 +331,7 @@ def main(
         head_config=head_config,
         finetune_config=finetune_config,
         freeze_encoder=freeze_encoder,
+        mae_feature_names=mae_feature_names,
         wandb_run=run,
     )
     save_head_checkpoint(
@@ -298,6 +340,9 @@ def main(
         head_config=head_config,
         finetune_config=finetune_config,
         mae_checkpoint_path=mae_path,
+        in_dim=head_in_dim,
+        concat_light=concat_light,
+        mae_feature_names=mae_feature_names,
     )
     click.echo(f"Saved regression head to: {out_path}")
     if run is not None:

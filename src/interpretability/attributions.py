@@ -56,7 +56,7 @@ def integrated_gradients_for_prediction(
     scaler = artifacts.scaler
 
     br_mean, br_std = get_stats(
-        scaler, key="brine_chemistry", feature_names=BRINE_FEATURE_COLUMNS
+        scaler, key="brine_features", feature_names=BRINE_FEATURE_COLUMNS
     )
     exp_mean, exp_std = get_stats(
         scaler, key="experimental_features", feature_names=EXPERIMENTAL_FEATURE_COLUMNS
@@ -154,4 +154,3 @@ def integrated_gradients_for_prediction(
         attributions=attrs,
         deltas=deltas,
     )
-

@@ -39,7 +39,9 @@ def integrated_gradients(
     device = inputs.device
     dtype = inputs.dtype
     alphas = torch.linspace(0.0, 1.0, steps + 1, device=device, dtype=dtype)
-    scaled = baseline.unsqueeze(0) + alphas.unsqueeze(1) * (inputs - baseline).unsqueeze(0)
+    scaled = baseline.unsqueeze(0) + alphas.unsqueeze(1) * (
+        inputs - baseline
+    ).unsqueeze(0)
     scaled.requires_grad_(True)
 
     outputs = forward_fn(scaled)
@@ -49,12 +51,15 @@ def integrated_gradients(
         raise ValueError("target_index out of range.")
 
     target = outputs[:, target_index].sum()
-    grads = torch.autograd.grad(target, scaled, create_graph=False, retain_graph=False)[0]
+    grads = torch.autograd.grad(target, scaled, create_graph=False, retain_graph=False)[
+        0
+    ]
 
     avg_grads = (grads[:-1] + grads[1:]) * 0.5
     integral = avg_grads.mean(dim=0)
     attributions = (inputs - baseline) * integral
 
     delta = outputs[-1, target_index] - outputs[0, target_index] - attributions.sum()
-    return IntegratedGradientsResult(attributions=attributions.detach(), delta=delta.detach())
-
+    return IntegratedGradientsResult(
+        attributions=attributions.detach(), delta=delta.detach()
+    )

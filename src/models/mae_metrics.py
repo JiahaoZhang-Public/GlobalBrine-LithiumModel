@@ -126,7 +126,9 @@ def per_feature_drop_mse(
 
         obs = ~np.isnan(x[:, j])
         if int(obs.sum()) == 0:
-            results.append(FeatureReconstructionResult(feature_index=j, mse=float("nan"), n=0))
+            results.append(
+                FeatureReconstructionResult(feature_index=j, mse=float("nan"), n=0)
+            )
             continue
 
         mask = np.zeros((n, d), dtype=bool)

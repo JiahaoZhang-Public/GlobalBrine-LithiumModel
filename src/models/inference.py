@@ -6,6 +6,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
 import torch
+from torch import nn
 
 from src.constants import (
     BRINE_FEATURE_COLUMNS,
@@ -51,15 +52,28 @@ def load_mae(path: Path, *, device: torch.device | None = None) -> TabularMAE:
     return model
 
 
+def _infer_head_in_dim(state_dict: Mapping[str, torch.Tensor]) -> int:
+    for key, value in state_dict.items():
+        if not isinstance(value, torch.Tensor):
+            continue
+        if value.ndim != 2:
+            continue
+        if key.endswith(".weight") or key.endswith("weight"):
+            return int(value.shape[1])
+    raise ValueError("Unable to infer regression head input dim from checkpoint.")
+
+
 def load_head(
     path: Path,
     *,
-    in_dim: int,
     out_dim: int,
     device: torch.device | None = None,
 ) -> RegressionHead:
     ckpt = torch.load(path, map_location="cpu")
     cfg = RegressionHeadConfig(**ckpt.get("head_config", {}))
+    in_dim = int(ckpt.get("in_dim", 0))
+    if in_dim <= 0:
+        in_dim = _infer_head_in_dim(ckpt["head_state_dict"])
     cfg = RegressionHeadConfig(
         hidden_dim=cfg.hidden_dim,
         n_layers=cfg.n_layers,
@@ -86,7 +100,6 @@ def load_artifacts(
     mae = load_mae(mae_path, device=device)
     head = load_head(
         head_path,
-        in_dim=mae.config.d_model + 1,
         out_dim=len(EXPERIMENTAL_TARGET_COLUMNS),
         device=device,
     )
@@ -109,7 +122,7 @@ def _as_matrix(
 
 
 @torch.no_grad()
-def mae_impute_brine_chemistry(
+def mae_impute_brine_features(
     mae: TabularMAE,
     *,
     brine_raw: np.ndarray,
@@ -122,7 +135,7 @@ def mae_impute_brine_chemistry(
     Returns (imputed_raw, imputed_normalized).
     """
     mean, std = get_stats(
-        scaler, key="brine_chemistry", feature_names=BRINE_FEATURE_COLUMNS
+        scaler, key="brine_features", feature_names=BRINE_FEATURE_COLUMNS
     )
     x_std = standardize_preserve_nan(brine_raw.astype(np.float32), mean, std)
     dev = device or next(mae.parameters()).device
@@ -156,14 +169,8 @@ def predict_labels(
 
     x_exp_raw = _as_matrix(samples, EXPERIMENTAL_FEATURE_COLUMNS)
 
-    # Standardize experimental features:
-    # - TDS_gL / MLR should match brine_chemistry scaling
-    # - Light_kW_m2 matches experimental_features scaling
     br_mean, br_std = get_stats(
-        scaler, key="brine_chemistry", feature_names=BRINE_FEATURE_COLUMNS
-    )
-    exp_mean, exp_std = get_stats(
-        scaler, key="experimental_features", feature_names=EXPERIMENTAL_FEATURE_COLUMNS
+        scaler, key="brine_features", feature_names=BRINE_FEATURE_COLUMNS
     )
     y_mean, y_std = get_stats(
         scaler, key="experimental_targets", feature_names=EXPERIMENTAL_TARGET_COLUMNS
@@ -177,11 +184,12 @@ def predict_labels(
     br_cols = list(BRINE_FEATURE_COLUMNS)
     br_tds = br_cols.index("TDS_gL")
     br_mlr = br_cols.index("MLR")
+    br_light = br_cols.index("Light_kW_m2")
 
     x_exp_std[:, tds_idx] = (x_exp_std[:, tds_idx] - br_mean[br_tds]) / br_std[br_tds]
     x_exp_std[:, mlr_idx] = (x_exp_std[:, mlr_idx] - br_mean[br_mlr]) / br_std[br_mlr]
-    x_exp_std[:, light_idx] = (x_exp_std[:, light_idx] - exp_mean[light_idx]) / exp_std[
-        light_idx
+    x_exp_std[:, light_idx] = (x_exp_std[:, light_idx] - br_mean[br_light]) / br_std[
+        br_light
     ]
 
     # Build chemistry vector for MAE encoder.
@@ -190,6 +198,7 @@ def predict_labels(
     )
     chem_std[:, br_tds] = x_exp_std[:, tds_idx]
     chem_std[:, br_mlr] = x_exp_std[:, mlr_idx]
+    chem_std[:, br_light] = x_exp_std[:, light_idx]
 
     if impute_missing_chemistry:
         xt = torch.from_numpy(chem_std).to(device=device, dtype=torch.float32)
@@ -199,10 +208,26 @@ def predict_labels(
     z = artifacts.mae.encode(
         torch.from_numpy(chem_std).to(device=device, dtype=torch.float32)
     )
-    light = torch.from_numpy(x_exp_std[:, light_idx : light_idx + 1]).to(
-        device=device, dtype=torch.float32
-    )
-    head_in = torch.cat([z, light], dim=1)
+    head_in_dim: int | None = None
+    for module in artifacts.head.net:
+        if isinstance(module, nn.Linear):
+            head_in_dim = int(module.in_features)
+            break
+    if head_in_dim is None:
+        raise ValueError("Unable to infer regression head input dim.")
+
+    if head_in_dim == int(z.shape[1]):
+        head_in = z
+    elif head_in_dim == int(z.shape[1]) + 1:
+        light = torch.from_numpy(x_exp_std[:, light_idx : light_idx + 1]).to(
+            device=device, dtype=torch.float32
+        )
+        head_in = torch.cat([z, light], dim=1)
+    else:
+        raise ValueError(
+            f"Unexpected regression head input dim={head_in_dim}; "
+            f"expected {int(z.shape[1])} or {int(z.shape[1]) + 1}."
+        )
     y_std_pred = artifacts.head(head_in).detach().cpu().numpy().astype(np.float32)
     y_pred = y_std_pred * y_std + y_mean
     y_pred = np.clip(y_pred, 0.0, None)

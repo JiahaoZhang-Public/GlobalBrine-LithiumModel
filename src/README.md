@@ -137,6 +137,8 @@ Since CSV files are assumed to be already clean, this module:
 - Loads data/raw/brines.csv and data/raw/experimental.csv
 - Validates required columns exist (see `src/constants.py`)
 - Enforces consistent column ordering (required columns first; extra columns preserved)
+- Adds `Latitude`/`Longitude` for brines when missing (parsed from `Location`)
+- Optionally samples `Light_kW_m2` for brines from a GeoTIFF using `Latitude`/`Longitude`
 - Saves them to `data/processed/` for downstream modules
 
 **No data cleaning is performed.**
@@ -160,6 +162,29 @@ This module preserves the reproducibility and modularity of the pipeline.
 ```bash
 python src/data/make_dataset.py data/raw data/processed
 ```
+
+### **Add irradiance-derived Light feature for brines**
+
+We recommend downloading **GHI — Global horizontal irradiation [kWh/m²]** from Global Solar Atlas:
+
+- Download link: `https://api.globalsolaratlas.info/download/World/World_GHI_GISdata_LTAy_AvgDailyTotals_GlobalSolarAtlas-v2_GEOTIFF.zip`
+- Source page: `https://globalsolaratlas.info/download/world`
+
+Unzip the GeoTIFF and run:
+
+```bash
+# requires dependency: rasterio
+# GlobalSolarAtlas "AvgDailyTotals" is kWh/m^2/day, so divide by 24 to store as kW/m^2 average power
+python src/data/make_dataset.py \
+  --light-geotiff path/to/GHI_*.tif \
+  --light-scale 0.0416666667 \
+  data/raw data/processed
+```
+
+Notes:
+- `Light_kW_m2` is written into `data/processed/brines.csv` (blank if a point is outside the raster, masked, or has no lat/lon).
+- `Latitude`/`Longitude` are derived from `Location` when missing; if parsing fails and no lat/lon is present, `Light_kW_m2` stays blank.
+- `src/features/build_features.py` expects brine `Light_kW_m2` to be populated (it is part of the MAE feature space).
 
 ---
 
@@ -191,7 +216,7 @@ This isolates **feature engineering** from model code.
 
 ### **Outputs**
 
-- `data/processed/X_lake.npy` (float32, standardized, shape `[n_brines, 9]`, may contain `NaN`)
+- `data/processed/X_lake.npy` (float32, standardized, shape `[n_brines, 10]`, may contain `NaN`)
 - `data/processed/X_exp.npy` (float32, standardized, shape `[n_experiments, 3]`, may contain `NaN`)
 - `data/processed/y_exp.npy` (float32, standardized targets, shape `[n_experiments, 3]`)
 - `data/processed/feature_scaler.joblib` (scaler stats for inputs + targets, used for inference de-normalization)
