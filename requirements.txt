@@ -23,3 +23,4 @@ torch
 tqdm
 matplotlib
 wandb
+umap-learn

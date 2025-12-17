@@ -45,4 +45,3 @@ python src/models/sweep_mae.py "${PROCESSED_DIR}" \
   "${extra_args[@]}"
 
 echo "Done. Results in: ${OUT_DIR}"
-

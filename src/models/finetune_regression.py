@@ -10,10 +10,19 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
-from src.constants import BRINE_FEATURE_COLUMNS, EXPERIMENTAL_FEATURE_COLUMNS
-from src.models.mae import TabularMAE, TabularMAEConfig
-from src.models.regression_head import RegressionHead, RegressionHeadConfig
-from src.models.wandb_utils import init_wandb, log_wandb
+try:
+    from src.constants import BRINE_FEATURE_COLUMNS, EXPERIMENTAL_FEATURE_COLUMNS
+    from src.models.mae import TabularMAE, TabularMAEConfig
+    from src.models.regression_head import RegressionHead, RegressionHeadConfig
+    from src.models.wandb_utils import init_wandb, log_wandb
+except ModuleNotFoundError:  # pragma: no cover
+    import sys
+
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
+    from src.constants import BRINE_FEATURE_COLUMNS, EXPERIMENTAL_FEATURE_COLUMNS
+    from src.models.mae import TabularMAE, TabularMAEConfig
+    from src.models.regression_head import RegressionHead, RegressionHeadConfig
+    from src.models.wandb_utils import init_wandb, log_wandb
 
 
 @dataclass(frozen=True)

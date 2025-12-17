@@ -145,6 +145,7 @@ def save_checkpoint(
 @click.option("--n-heads", type=int, default=8, show_default=True)
 @click.option("--n-layers", type=int, default=4, show_default=True)
 @click.option("--mlp-ratio", type=float, default=4.0, show_default=True)
+@click.option("--dropout", type=float, default=0.0, show_default=True)
 @click.option("--wandb/--no-wandb", default=False, show_default=True)
 @click.option(
     "--wandb-project", type=str, default="GlobalBrine-LithiumModel", show_default=True
@@ -171,6 +172,7 @@ def main(
     n_heads: int,
     n_layers: int,
     mlp_ratio: float,
+    dropout: float,
     wandb: bool,
     wandb_project: str,
     wandb_name: str | None,
@@ -186,6 +188,7 @@ def main(
         n_heads=n_heads,
         n_layers=n_layers,
         mlp_ratio=mlp_ratio,
+        dropout=dropout,
         mask_ratio=mask_ratio,
     )
     train_config = TrainConfig(
