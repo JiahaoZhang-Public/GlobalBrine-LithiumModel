@@ -58,7 +58,7 @@ input_mask = (not obs_mask) OR mae_mask
 Loss masking (only learn to reconstruct values we deliberately hid):
 
 ```
-loss_mask = obs_mask AND mae_mask
+loss_mask = obs_mask
 loss = ((recon - x_true)^2 * loss_mask).sum() / loss_mask.sum()
 ```
 

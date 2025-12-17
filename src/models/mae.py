@@ -43,13 +43,13 @@ def build_effective_masks(
     mask_ratio: float,
     min_visible: int = 1,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Return (input_mask, loss_mask) following obs_mask vs mae_mask semantics.
+    """Return (input_mask, loss_mask) for denoising-style MAE training.
 
     obs_mask: True where x has a real value (not NaN)
     mae_mask: True where we randomly mask an observed feature for MAE training
 
     input_mask = (~obs_mask) OR mae_mask
-    loss_mask  = obs_mask AND mae_mask
+    loss_mask  = obs_mask
 
     mask_ratio applies only over observed features (per-row), with at least
     min_visible observed features kept unmasked.
@@ -84,7 +84,7 @@ def build_effective_masks(
         mae_mask[i, perm[:num_mask]] = True
 
     input_mask = (~obs_mask) | mae_mask
-    loss_mask = obs_mask & mae_mask
+    loss_mask = obs_mask
     return input_mask, loss_mask
 
 
@@ -165,7 +165,12 @@ class TabularMAE(nn.Module):
     def pretrain_loss(
         self, x: torch.Tensor, *, mask_ratio: Optional[float] = None
     ) -> torch.Tensor:
-        """MAE reconstruction loss on observed+masked positions."""
+        """Denoising reconstruction loss over all observed positions.
+
+        Training objective: reconstruct every non-missing feature (obs_mask),
+        while the encoder input is corrupted via random MAE masking plus missing
+        values (mask token).
+        """
         token, missing_mask = self._tokens(x)
         ratio = self.config.mask_ratio if mask_ratio is None else mask_ratio
         input_mask, loss_mask = build_effective_masks(x, mask_ratio=ratio)

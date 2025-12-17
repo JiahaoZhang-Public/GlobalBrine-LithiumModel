@@ -48,9 +48,10 @@ class TestTabularMAE(unittest.TestCase):
         input_mask, loss_mask = build_effective_masks(x, mask_ratio=0.25, min_visible=1)
         self.assertTrue(input_mask[0, 0].item())
         self.assertTrue(input_mask[0, 2].item())
-        # mask_ratio applies on observed features only: F_obs=2 => floor(2*0.25)=0
-        # but we still mask 1 feature when possible to avoid zero-loss edge cases.
-        self.assertEqual(int(loss_mask.sum().item()), 1)
+        # loss is computed on all observed features only.
+        self.assertEqual(int(loss_mask.sum().item()), 2)
+        # input_mask includes 2 missing + 1 MAE mask (small ratio still masks one if possible).
+        self.assertEqual(int(input_mask.sum().item()), 3)
 
     def test_masking_ratio_applies_only_to_observed_features(self):
         from src.models.mae import build_effective_masks
@@ -59,7 +60,7 @@ class TestTabularMAE(unittest.TestCase):
         x = torch.tensor([[0.0, 1.0, 2.0, 3.0, 4.0]], dtype=torch.float32)
         input_mask, loss_mask = build_effective_masks(x, mask_ratio=0.4, min_visible=2)
         # F_obs=5 => num_mask=floor(5*0.4)=2, max_mask=5-2=3 => 2 masks.
-        self.assertEqual(int(loss_mask.sum().item()), 2)
+        self.assertEqual(int(loss_mask.sum().item()), 5)
         self.assertEqual(int(input_mask.sum().item()), 2)
 
         torch.manual_seed(0)
@@ -70,7 +71,7 @@ class TestTabularMAE(unittest.TestCase):
             x2, mask_ratio=0.4, min_visible=2
         )
         # F_obs=3 => num_mask=floor(3*0.4)=1, max_mask=3-2=1 => 1 MAE mask.
-        self.assertEqual(int(loss_mask2.sum().item()), 1)
+        self.assertEqual(int(loss_mask2.sum().item()), 3)
         # input_mask includes 2 missing + 1 MAE mask = 3 total.
         self.assertEqual(int(input_mask2.sum().item()), 3)
 
@@ -80,7 +81,7 @@ class TestTabularMAE(unittest.TestCase):
         torch.manual_seed(0)
         x = torch.tensor([[0.0, 1.0, 2.0, 3.0]], dtype=torch.float32)
         input_mask, loss_mask = build_effective_masks(x, mask_ratio=0.1, min_visible=1)
-        self.assertEqual(int(loss_mask.sum().item()), 1)
+        self.assertEqual(int(loss_mask.sum().item()), 4)
         self.assertEqual(int(input_mask.sum().item()), 1)
 
     def test_zero_loss_is_differentiable_when_no_masked_positions(self):
