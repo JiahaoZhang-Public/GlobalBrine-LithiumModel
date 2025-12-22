@@ -14,7 +14,7 @@ out_path="${MAE_OUT:-models/mae_pretrained.pth}"
 
 python "src/models/train_mae.py" "$processed_dir" \
   --out "$out_path" \
-  --epochs 1000 \
+  --epochs 10000 \
   --batch-size 128 \
   --lr 0.0001 \
   --weight-decay 1e-05 \
