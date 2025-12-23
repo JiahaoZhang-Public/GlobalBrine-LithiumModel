@@ -31,15 +31,14 @@ We use a **Masked Autoencoder (MAE)** to **learn a latent representation of brin
 
 ## **1. MAE Pretraining (Unsupervised Learning)**
 
-Input: data/raw/brines.csv
+Source data: `data/raw/brines.csv` → `data/processed/brines.csv` → `data/processed/X_lake.npy`
 
 - Each brine sample has features such as:
 
 ```
-Li_gL, Mg_gL, Na_gL, K_gL, Ca_gL, SO4_gL, Cl_gL, MLR, TDS_gL
+Li_gL, Mg_gL, Na_gL, K_gL, Ca_gL, SO4_gL, Cl_gL, MLR, TDS_gL, Light_kW_m2
 ```
 
-- 
 - Each feature is treated as a **continuous token**.
 - MAE masks a subset of these tokens and learns to **reconstruct the missing chemical values**.
 - Missing values (`NaN`) are treated as already-masked inputs and are **never** included in the reconstruction loss (no ground truth).
@@ -55,7 +54,7 @@ Model input masking:
 input_mask = (not obs_mask) OR mae_mask
 ```
 
-Loss masking (only learn to reconstruct values we deliberately hid):
+Loss masking (denoising objective over observed values):
 
 ```
 loss_mask = obs_mask
@@ -76,7 +75,7 @@ Output:
 
 ## **2. Downstream Fine-tuning (Supervised Learning)**
 
-Input: data/raw/experimental.csv
+Source data: `data/raw/experimental.csv` → `data/processed/experimental.csv` → `data/processed/X_exp.npy` / `data/processed/y_exp.npy`
 
 - 10 labeled samples containing:
 
@@ -114,10 +113,14 @@ src/
 │   └── __init__.py
 ├── features/
 │   ├── build_features.py
+│   ├── scaler.py
 │   └── __init__.py
 ├── models/
-│   ├── train_model.py
-│   ├── predict_model.py
+│   ├── train_mae.py
+│   ├── finetune_regression.py
+│   ├── inference.py
+│   └── __init__.py
+├── interpretability/
 │   └── __init__.py
 └── visualization/
     ├── visualize.py
@@ -184,7 +187,7 @@ python src/data/make_dataset.py \
 Notes:
 - `Light_kW_m2` is written into `data/processed/brines.csv` (blank if a point is outside the raster, masked, or has no lat/lon).
 - `Latitude`/`Longitude` are derived from `Location` when missing; if parsing fails and no lat/lon is present, `Light_kW_m2` stays blank.
-- `src/features/build_features.py` expects brine `Light_kW_m2` to be populated (it is part of the MAE feature space).
+- `src/features/build_features.py` expects brine `Light_kW_m2` to have at least some non-missing values (it is part of the MAE feature space).
 
 ---
 
@@ -201,8 +204,7 @@ This stage converts processed CSVs into **normalized model-ready arrays** and a 
 - Apply feature scaling:
     - Fit scaling stats on brine-chemistry features from `brines.csv` (`X_lake`)
     - Apply those stats to `X_lake`
-    - For `X_exp`, reuse brine stats for shared chemistry features (`TDS_gL`, `MLR`)
-      and fit `Light_kW_m2` stats from the experimental dataset
+    - For `X_exp`, reuse the brine-feature stats for `TDS_gL`, `MLR`, and `Light_kW_m2`
 - Missing values:
     - Blank feature cells are kept as `NaN` by default (so the MAE can treat them as missing)
     - Rows with missing targets in `experimental.csv` are dropped by default
@@ -250,7 +252,7 @@ python src/features/build_features.py data/processed
 
 ## **src/models/**
 
-### **train_model.py**
+### **train_mae.py + finetune_regression.py**
 
 Runs the **two-stage training pipeline**:
 
@@ -291,17 +293,17 @@ python src/models/finetune_regression.py data/processed --wandb --wandb-mode off
 
 To log online, set `WANDB_API_KEY` and use `--wandb-mode online`.
 
-Note: the regression fine-tuning uses the MAE encoder on the brine-chemistry feature space; with the current `X_exp` schema (`TDS_gL`, `MLR`, `Light_kW_m2`), only `TDS_gL` and `MLR` are provided to the encoder and the remaining chemistry features are treated as missing. `Light_kW_m2` is concatenated to the latent vector before the regression head.
+Note: regression fine-tuning uses the MAE encoder on the brine-feature space; with the current `X_exp` schema (`TDS_gL`, `MLR`, `Light_kW_m2`), only those fields are provided to the encoder and the remaining chemistry features are treated as missing. If the MAE checkpoint was trained without `Light_kW_m2`, the code will concatenate `Light_kW_m2` to the latent vector before the regression head for backward compatibility.
 
 ---
 
-### **predict_model.py**
+### **inference.py**
 
 Implements model inference:
 
 - Loads pretrained encoder + regression head
 - Loads feature scaler
-- Accepts new brine chemistry as input
+- Accepts new (possibly partial) brine chemistry as input
 - Returns predictions for:
     - Selectivity
     - Li crystallization
