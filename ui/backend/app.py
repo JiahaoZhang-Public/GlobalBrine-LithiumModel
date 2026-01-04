@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -291,12 +292,56 @@ def aggregate(
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    # ui/backend/app.py -> ui/backend -> ui -> repo root
+    return Path(__file__).resolve().parents[2]
 
 
 def _resolve_path(path: str) -> Path:
     p = Path(path)
     return p if p.is_absolute() else (_repo_root() / p)
+
+
+@app.post("/persist_predictions_files")
+async def persist_predictions_files(request: Request) -> dict[str, Any]:
+    """
+    Persist imputed and predicted CSVs to disk so Map/Latent endpoints can reuse them.
+
+    Expects multipart/form-data with fields:
+    - imputed_file: CSV (required)
+    - predictions_file: CSV (required)
+    - imputed_path: optional output path (default data/predictions/brines_imputed.csv)
+    - predictions_path: optional output path (default data/predictions/brines_with_predictions.csv)
+    """
+    _require_token(request.headers.get("authorization"))
+    content_type = request.headers.get("content-type", "")
+    if not content_type.startswith("multipart/form-data"):
+        raise HTTPException(status_code=415, detail="Expected multipart/form-data")
+
+    form = await request.form()
+    imputed_file: UploadFile | None = form.get("imputed_file")  # type: ignore[assignment]
+    predictions_file: UploadFile | None = form.get("predictions_file")  # type: ignore[assignment]
+    if imputed_file is None:
+        raise HTTPException(status_code=400, detail="Missing multipart field: imputed_file")
+    if predictions_file is None:
+        raise HTTPException(status_code=400, detail="Missing multipart field: predictions_file")
+
+    imputed_path_raw = str(form.get("imputed_path") or "data/predictions/brines_imputed.csv")
+    predictions_path_raw = str(form.get("predictions_path") or "data/predictions/brines_with_predictions.csv")
+    imputed_path = _resolve_path(imputed_path_raw)
+    predictions_path = _resolve_path(predictions_path_raw)
+    imputed_path.parent.mkdir(parents=True, exist_ok=True)
+    predictions_path.parent.mkdir(parents=True, exist_ok=True)
+
+    imputed_bytes = await imputed_file.read()
+    predictions_bytes = await predictions_file.read()
+    imputed_path.write_bytes(imputed_bytes)
+    predictions_path.write_bytes(predictions_bytes)
+
+    return {
+        "paths": {"imputed_csv": str(imputed_path), "predictions_csv": str(predictions_path)},
+        "sizes": {"imputed_bytes": int(len(imputed_bytes)), "predictions_bytes": int(len(predictions_bytes))},
+        "meta": {"warnings": []},
+    }
 
 
 def _resolve_predictions_path(predictions_csv: str | None = None) -> Path:
@@ -350,12 +395,33 @@ def _load_predictions_df(predictions_csv: str | None = None):
 def _load_imputed_brines_df():
     import pandas as pd
 
-    data_dir = os.environ.get("DATA_DIR", "data/processed")
-    # Prefer the imputed file (no NaNs) if present.
+    data_dir_raw = os.environ.get("DATA_DIR", "data/processed").strip() or "data/processed"
+
+    # Explicit override for testing / custom pipelines.
+    explicit = os.environ.get("BRINES_IMPUTED_CSV", "").strip()
+    if explicit:
+        p = _resolve_path(explicit)
+        if p.exists():
+            return pd.read_csv(p)
+        raise HTTPException(status_code=404, detail=f"Missing BRINES_IMPUTED_CSV: {p}")
+
+    # If a custom DATA_DIR is provided, prefer it over repo-level cached predictions.
+    data_dir = data_dir_raw.rstrip("/")
+    if data_dir != "data/processed":
+        candidate = _resolve_path(f"{data_dir}/brines_imputed.csv")
+        if candidate.exists():
+            return pd.read_csv(candidate)
+        fallback = _resolve_path(f"{data_dir}/brines.csv")
+        if not fallback.exists():
+            raise HTTPException(status_code=404, detail=f"Missing brines CSV: {fallback}")
+        return pd.read_csv(fallback)
+
+    # Default path: prefer repo-level imputed file (no NaNs) if present.
     candidate = _resolve_path("data/predictions/brines_imputed.csv")
     if candidate.exists():
         return pd.read_csv(candidate)
-    fallback = _resolve_path(f"{data_dir.rstrip('/')}/brines.csv")
+
+    fallback = _resolve_path("data/processed/brines.csv")
     if not fallback.exists():
         raise HTTPException(status_code=404, detail=f"Missing brines CSV: {fallback}")
     return pd.read_csv(fallback)
@@ -1251,6 +1317,8 @@ def latent_embeddings(
             "MLR": row.get("MLR"),
             "Light_kW_m2": row.get("Light_kW_m2"),
             "Location": row.get("Location"),
+            "Type_of_water": row.get("Type_of_water"),
+            "Brine": row.get("Brine"),
             "country": row.get("Country") or row.get("country"),
             "predicted_Li": row.get("Pred_Li_Crystallization_mg_m2_h"),
             "Selectivity": row.get("Pred_Selectivity"),

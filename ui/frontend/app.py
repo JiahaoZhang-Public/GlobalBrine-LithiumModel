@@ -96,6 +96,57 @@ def api_batch_predict_csv(
         return None, r.text
     return r.content, ""
 
+def api_batch_predict_csv_path(
+    path: str,
+    *,
+    model_version: str,
+    impute_strategy: str,
+    token: str | None,
+):
+    with open(path, "rb") as handle:
+        files = {"file": (os.path.basename(path), handle, "text/csv")}
+        data = {"model_version": model_version, "impute_strategy": impute_strategy}
+        r = requests.post(
+            f"{backend_url()}/batch_predict",
+            files=files,
+            data=data,
+            headers=_auth_headers(token),
+            timeout=300,
+        )
+    if r.status_code != 200:
+        return None, r.text
+    return r.content, ""
+
+
+def api_persist_predictions_files(
+    *,
+    imputed_csv_path: str,
+    predictions_csv_path: str,
+    token: str | None,
+    imputed_path: str | None = None,
+    predictions_path: str | None = None,
+):
+    with open(imputed_csv_path, "rb") as f1, open(predictions_csv_path, "rb") as f2:
+        files = {
+            "imputed_file": (os.path.basename(imputed_csv_path), f1, "text/csv"),
+            "predictions_file": (os.path.basename(predictions_csv_path), f2, "text/csv"),
+        }
+        data = {}
+        if imputed_path:
+            data["imputed_path"] = imputed_path
+        if predictions_path:
+            data["predictions_path"] = predictions_path
+        r = requests.post(
+            f"{backend_url()}/persist_predictions_files",
+            files=files,
+            data=data,
+            headers=_auth_headers(token),
+            timeout=60,
+        )
+    if r.status_code != 200:
+        return None, r.text
+    return r.json(), ""
+
 
 def _load_default_brines() -> pd.DataFrame:
     path = os.environ.get("BRINES_CSV", "data/processed/brines.csv")
@@ -130,9 +181,22 @@ def build_demo() -> gr.Blocks:
                     label="Impute strategy",
                 )
                 apply_impute = gr.Button("Apply Imputation (backend)")
+            with gr.Row():
+                pred_model = gr.Dropdown(
+                    choices=["downstream_head_latest"],
+                    value="downstream_head_latest",
+                    label="Model (batch predict)",
+                )
+                run_predict = gr.Button("Predict (batch) + Save for Map/Latent")
+                persist_outputs = gr.Checkbox(
+                    value=True,
+                    label="Persist to data/predictions (backend cache)",
+                )
             missing_html = gr.HTML()
             preview = gr.DataFrame(interactive=False, label="Preview (first 50 rows)")
             download_out = gr.File(label="Download imputed CSV")
+            pred_preview = gr.DataFrame(interactive=False, label="Predictions preview (first 50 rows)")
+            pred_download = gr.File(label="Download predictions CSV")
             explorer_warn = gr.Markdown()
 
             def _load_df(file_obj):
@@ -145,23 +209,99 @@ def build_demo() -> gr.Blocks:
 
             def _apply_impute(df: pd.DataFrame, strategy: str, token: str | None):
                 if df is None:
-                    return None, None, None, "Load a dataset first.", None
+                    return None, None, None, "Load a dataset first.", None, None, None
                 payload = {"rows": df.to_dict(orient="records"), "impute_strategy": strategy}
                 res, err = api_impute(payload, token)
                 if err:
-                    return df, _highlight_missing_html(df), df.head(50), f"### Error\n{err}", None
+                    return df, _highlight_missing_html(df), df.head(50), f"### Error\n{err}", None, None, None
                 imputed = pd.DataFrame(res["imputed_rows"])
                 tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".csv")
                 tmp.close()
                 imputed.to_csv(tmp.name, index=False)
-                return imputed, _highlight_missing_html(imputed), imputed.head(50), "", tmp.name
+                return imputed, _highlight_missing_html(imputed), imputed.head(50), "", tmp.name, None, None
 
             file_in.change(_load_df, inputs=[file_in], outputs=[state_df, missing_html, preview])
             load_default.click(_load_default, outputs=[state_df, missing_html, preview])
             apply_impute.click(
                 _apply_impute,
                 inputs=[state_df, impute_strategy, explorer_token],
-                outputs=[state_df, missing_html, preview, explorer_warn, download_out],
+                outputs=[state_df, missing_html, preview, explorer_warn, download_out, pred_preview, pred_download],
+            )
+
+            def _predict_and_persist(
+                df: pd.DataFrame,
+                model_version: str,
+                do_persist: bool,
+                token: str | None,
+            ):
+                if df is None:
+                    return None, None, "Load a dataset first."
+
+                # Require that core numeric feature columns are fully imputed (no NaNs).
+                feature_cols = [
+                    "Li_gL",
+                    "Mg_gL",
+                    "Na_gL",
+                    "K_gL",
+                    "Ca_gL",
+                    "SO4_gL",
+                    "Cl_gL",
+                    "MLR",
+                    "TDS_gL",
+                    "Light_kW_m2",
+                ]
+                missing_any = False
+                for c in feature_cols:
+                    if c in df.columns and df[c].isna().any():
+                        missing_any = True
+                        break
+                if missing_any:
+                    return None, None, "### Error\nPlease apply imputation first (NaNs still present in brine features)."
+
+                tmp_imp = tempfile.NamedTemporaryFile(delete=False, suffix=".csv")
+                tmp_imp.close()
+                df.to_csv(tmp_imp.name, index=False)
+
+                content, err = api_batch_predict_csv_path(
+                    tmp_imp.name,
+                    model_version=str(model_version),
+                    impute_strategy="none",
+                    token=token,
+                )
+                if err:
+                    return None, None, f"### Error\n{err}"
+
+                tmp_pred = tempfile.NamedTemporaryFile(delete=False, suffix=".csv")
+                tmp_pred.close()
+                with open(tmp_pred.name, "wb") as handle:
+                    handle.write(content)
+
+                try:
+                    pred_df = pd.read_csv(tmp_pred.name).head(50)
+                except Exception:
+                    pred_df = pd.DataFrame()
+
+                if do_persist:
+                    saved, serr = api_persist_predictions_files(
+                        imputed_csv_path=tmp_imp.name,
+                        predictions_csv_path=tmp_pred.name,
+                        token=token,
+                    )
+                    if serr:
+                        return pred_df, tmp_pred.name, f"### Warning\nSaved predictions file locally, but backend persist failed:\n\n{serr}"
+                    paths = (saved or {}).get("paths", {})
+                    return (
+                        pred_df,
+                        tmp_pred.name,
+                        f"### Saved\n- imputed: `{paths.get('imputed_csv')}`\n- predictions: `{paths.get('predictions_csv')}`",
+                    )
+
+                return pred_df, tmp_pred.name, ""
+
+            run_predict.click(
+                _predict_and_persist,
+                inputs=[state_df, pred_model, persist_outputs, explorer_token],
+                outputs=[pred_preview, pred_download, explorer_warn],
             )
 
         with gr.Tab("Predict & Explain (Single)"):
@@ -612,8 +752,8 @@ def build_demo() -> gr.Blocks:
                     latent_n_neighbors = gr.Number(label="n_neighbors (UMAP)", value=15, precision=0)
                     latent_perplexity = gr.Number(label="perplexity (t-SNE)", value=30.0)
                     latent_color_by = gr.Dropdown(
-                        choices=["none", "predicted_Li", "Selectivity", "TDS_gL", "country", "Location"],
-                        value="predicted_Li",
+                        choices=["none", "Brine", "Type_of_water", "Location"],
+                        value="Brine",
                         label="Color by",
                     )
                     latent_point_size = gr.Slider(minimum=2, maximum=12, step=1, value=6, label="Point size")

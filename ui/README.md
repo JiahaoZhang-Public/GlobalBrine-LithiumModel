@@ -103,6 +103,9 @@ UI_TEST_MODE=1 pytest -q ui/tests
 
 The frontend now includes two analysis tabs:
 
+- **Data Explorer**: upload/preview raw data, apply backend imputation, then run batch prediction and persist:
+  - `data/predictions/brines_imputed.csv` (used by Latent Space)
+  - `data/predictions/brines_with_predictions.csv` (used by Map + interpolation)
 - **Map**: Plotly-based world map (no tile basemap needed) with sample-point tooltips and an optional global heatmap overlay. Heatmap supports:
   - point-cloud (fast): interpolated grid points rendered as a transparent layer
   - raster (paper-style): interpolated grid rendered as square “pixels” on a planar world map, with sites overlaid

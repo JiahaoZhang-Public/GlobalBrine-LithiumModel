@@ -415,6 +415,7 @@ def build_latent_scatter(
     *,
     color_by: str,
     point_size: int,
+    top_k_categories: int = 10,
 ):
     """
     Return a plot object suitable for `gr.Plot` (Plotly if available; otherwise Matplotlib).
@@ -431,6 +432,23 @@ def build_latent_scatter(
                 "color": [m.get(color_by) if color_by and color_by != "none" else None for m in metadata],
             }
         )
+        if color_by and color_by != "none":
+            s = df["color"]
+            non_null = s.dropna()
+            # Heuristic: treat as numeric if most values parse as numbers.
+            num = pd.to_numeric(non_null, errors="coerce")
+            is_numeric = (num.notna().sum() >= int(0.8 * max(1, len(non_null)))) if len(non_null) else False
+            if not is_numeric:
+                counts = non_null.astype(str).value_counts()
+                keep = set(counts.head(int(top_k_categories)).index.tolist())
+
+                def _clip(v: Any) -> str | None:
+                    if v is None:
+                        return None
+                    vv = str(v)
+                    return vv if vv in keep else "Other"
+
+                df["color"] = df["color"].map(_clip)
         fig = px.scatter(
             df,
             x="x",

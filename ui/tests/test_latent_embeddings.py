@@ -8,6 +8,8 @@ def _write_brines_csv(path: str, n: int = 20) -> None:
     for i in range(n):
         rows.append(
             {
+                "Type_of_water": f"Type{i%12}",
+                "Brine": f"Brine{i%15}",
                 "Location": f"Loc{i%3}",
                 "Latitude": -20.0 + 0.1 * i,
                 "Longitude": -68.0 + 0.1 * i,
@@ -67,10 +69,12 @@ def test_latent_embeddings_pca_with_cache(client, tmp_path):
     assert len(payload["embeddings"][0]) == 2
     assert "neighbors" in payload["metadata"][0]
     assert len(payload["metadata"][0]["neighbors"]) == 10
+    assert "Type_of_water" in payload["metadata"][0]
+    assert "Brine" in payload["metadata"][0]
+    assert "Location" in payload["metadata"][0]
 
     # Second call should hit cache (recompute=False default).
     r2 = client.get("/latent_embeddings", params={"method": "pca"})
     assert r2.status_code == 200, r2.text
     payload2 = r2.json()
     assert payload2["n_samples"] == 15
-
