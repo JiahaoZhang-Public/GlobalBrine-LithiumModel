@@ -3,6 +3,13 @@ GlobalBrine-LithiumModel
 
 Global ML model for lithium extraction metrics from brine chemistry and irradiance.
 
+Versioning & Release
+------------
+
+- Current version: `0.1.0`
+- Changelog: `CHANGELOG.md`
+- Tagging checklist: `RELEASING.md`
+
 Environment Setup
 ------------
 
