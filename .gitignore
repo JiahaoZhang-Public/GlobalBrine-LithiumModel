@@ -121,3 +121,8 @@ models/mae_sweep/
 # slurm logs
 logs/
 
+# Web artifacts
+web/backend/jobs/
+web/app/node_modules/
+web/app/dist/
+web/app/.vite/

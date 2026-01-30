@@ -30,6 +30,20 @@ Tutorials:
 - `docs/REPRODUCIBILITY.md`
 - `docs/INFERENCE.md`
 
+Web Platform
+------------
+
+An end-to-end web UI lives in `web/` (FastAPI backend + React/Tailwind frontend).
+
+```bash
+# Backend (from repo root)
+python -m pip install -r requirements.txt
+uvicorn web.backend.main:app --reload
+
+# Frontend (new terminal)
+cd web/app && npm install && npm run dev  # proxies /api to localhost:8000
+```
+
 Environment Setup
 ------------
 
