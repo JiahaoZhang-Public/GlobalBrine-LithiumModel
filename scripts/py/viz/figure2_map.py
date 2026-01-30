@@ -18,6 +18,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+DEFAULT_EXTENT = [-180, 180, -60, 65]
+FIGURE1_EXTENT = [-180, 180, -60, 80]
+NO_DATA_COLOR = "#e6e6e6"
+
 try:
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
@@ -245,7 +249,7 @@ def parse_args() -> argparse.Namespace:
         "--extent",
         nargs=4,
         type=float,
-        default=[-180, 180, -60, 65],
+        default=DEFAULT_EXTENT,
         metavar=("LON_MIN", "LON_MAX", "LAT_MIN", "LAT_MAX"),
         help="Map extent in degrees.",
     )
@@ -314,6 +318,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    extent = list(args.extent)
+    if args.no_ghi and extent == DEFAULT_EXTENT:
+        extent = FIGURE1_EXTENT
     df = pd.read_csv(args.input)
     df = df.dropna(
         subset=[
@@ -346,8 +353,8 @@ def main() -> None:
         evap = (sums / np.maximum(1, counts)).astype(np.float32)
 
     grid_step = float(args.grid_deg)
-    lons = _grid_centers(args.extent[0], args.extent[1], grid_step)
-    lats = _grid_centers(args.extent[2], args.extent[3], grid_step)
+    lons = _grid_centers(extent[0], extent[1], grid_step)
+    lats = _grid_centers(extent[2], extent[3], grid_step)
     if lons.size == 0 or lats.size == 0:
         raise SystemExit("Empty grid (check --extent/--grid-deg).")
     grid_lon, grid_lat = np.meshgrid(lons, lats)
@@ -383,19 +390,20 @@ def main() -> None:
     else:
         evap_cmap = mpl.colormaps.get_cmap(args.evap_cmap)
     evap_norm = mpl.colors.Normalize(vmin=evap_bins[0], vmax=evap_bins[-1])
-    evap_cmap.set_bad("#e6e6e6")
+    evap_cmap.set_bad(NO_DATA_COLOR)
 
     fig = plt.figure(figsize=tuple(args.figsize), dpi=args.dpi)
     ax = plt.axes(projection=ccrs.PlateCarree())
-    ax.set_extent(args.extent, crs=ccrs.PlateCarree())
-    ax.add_feature(cfeature.LAND, facecolor="#e6e6e6", edgecolor="none", zorder=0.4)
+    ax.set_extent(extent, crs=ccrs.PlateCarree())
+    ax.add_feature(cfeature.OCEAN, facecolor="white", edgecolor="none", zorder=0)
+    ax.add_feature(cfeature.LAND, facecolor=NO_DATA_COLOR, edgecolor="none", zorder=0.1)
     ghi_mesh = None
     if not args.no_ghi:
         if not args.ghi_geotiff:
             raise SystemExit("--ghi-geotiff is required unless --no-ghi is set.")
         ghi_lon_edges, ghi_lat_edges, ghi_data = _load_ghi_raster(
             args.ghi_geotiff,
-            args.extent,
+            extent,
             args.ghi_scale,
             max(1, int(args.ghi_subsample)),
         )
@@ -404,7 +412,7 @@ def main() -> None:
         ghi_cmap = mpl.colormaps.get_cmap(args.ghi_cmap)
         if hasattr(ghi_cmap, "copy"):
             ghi_cmap = ghi_cmap.copy()
-        ghi_cmap.set_bad("#e6e6e6")
+        ghi_cmap.set_bad(NO_DATA_COLOR)
         ghi_norm = mpl.colors.Normalize(vmin=ghi_vmin, vmax=ghi_vmax)
         ghi_mesh = ax.pcolormesh(
             ghi_lon_edges,
