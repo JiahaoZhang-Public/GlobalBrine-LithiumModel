@@ -1,4 +1,5 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3
+.PHONY: clean data features train_mae finetune predict_brines predict_samples \
+	smoke_train lint test requirements sync_data_to_s3 sync_data_from_s3
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -30,14 +31,43 @@ requirements: test_environment
 data: requirements
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw data/processed
 
+## Build model-ready arrays + scaler
+features: requirements
+	$(PYTHON_INTERPRETER) src/features/build_features.py data/processed
+
+## Train MAE encoder (writes models/mae_pretrained.pth by default)
+train_mae: features
+	$(PYTHON_INTERPRETER) src/models/train_mae.py data/processed --out models/mae_pretrained.pth
+
+## Fine-tune regression head (writes models/downstream_head.pth by default)
+finetune: train_mae
+	$(PYTHON_INTERPRETER) src/models/finetune_regression.py data/processed --mae models/mae_pretrained.pth --out models/downstream_head.pth
+
+## Predict targets for all processed brines
+predict_brines: finetune
+	$(PYTHON_INTERPRETER) src/models/predict_brines.py --processed-dir data/processed --out-dir data/predictions
+
+## Predict targets for a CSV of samples (see examples/)
+predict_samples: requirements
+	$(PYTHON_INTERPRETER) src/models/predict_samples.py --input examples/experimental_samples.csv --out examples/experimental_samples_with_predictions.csv
+
+## Smoke test: end-to-end training on tiny synthetic data
+smoke_train: requirements
+	bash scripts/sh/test/smoke_train.sh
+
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
 
-## Lint using flake8
+## Lint (ruff + black)
 lint:
-	flake8 src
+	black --check src tests
+	ruff check src tests
+
+## Run unit tests
+test:
+	pytest -q
 
 ## Upload Data to S3
 sync_data_to_s3:

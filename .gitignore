@@ -77,15 +77,18 @@ target/
 
 # exclude data from source control by default
 /data/*
+!/data/README.md
 
 # Keep directory placeholders only (not actual datasets/artifacts)
 !/data/raw/
 /data/raw/*
 !/data/raw/.gitkeep
+!/data/raw/README.md
 
 !/data/processed/
 /data/processed/*
 !/data/processed/.gitkeep
+!/data/processed/README.md
 
 # Cache predictions (tracked)
 !/data/predictions/

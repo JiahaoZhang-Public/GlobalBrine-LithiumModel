@@ -10,6 +10,26 @@ Versioning & Release
 - Changelog: `CHANGELOG.md`
 - Tagging checklist: `RELEASING.md`
 
+Reproducibility (Quickstart)
+------------
+
+Reproduce predictions using the included pipeline and checkpoints:
+
+```bash
+make create_environment
+conda activate global-brine-lithium-model
+make requirements
+
+python src/models/predict_brines.py \
+  --processed-dir data/processed \
+  --out-dir data/predictions
+```
+
+Tutorials:
+
+- `docs/REPRODUCIBILITY.md`
+- `docs/INFERENCE.md`
+
 Environment Setup
 ------------
 
