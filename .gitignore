@@ -121,5 +121,3 @@ models/mae_sweep/
 # slurm logs
 logs/
 
-
-ui/backend/cached/
