@@ -26,7 +26,7 @@ COPY data/predictions /app/data/predictions
 ENV GLB_MAE_PATH=/app/models/mae_pretrained.pth \
     GLB_HEAD_PATH=/app/models/downstream_head.pth \
     GLB_SCALER_PATH=/app/data/processed/feature_scaler.joblib \
-    GLB_MODEL_VERSION=0.1.0 \
+    GLB_MODEL_VERSION=0.2.0 \
     GLB_PREDICTIONS_CSV=/app/data/predictions/brines_with_predictions.csv \
     GLB_JOB_STORAGE_DIR=/app/web/backend/jobs
 
