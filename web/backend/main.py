@@ -135,6 +135,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Compat: redirect legacy /v1/* -> /api/v1/*
+@app.middleware("http")
+async def redirect_legacy_v1(request, call_next):
+    path = request.url.path
+    if path.startswith("/v1/"):
+        from fastapi.responses import RedirectResponse
+
+        new_url = request.url.replace(path="/api" + path)
+        return RedirectResponse(str(new_url), status_code=307)
+    return await call_next(request)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().allow_origins or ["*"],
