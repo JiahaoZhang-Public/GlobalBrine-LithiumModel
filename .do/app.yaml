@@ -36,7 +36,7 @@ services:
       - key: GLB_JOB_STORAGE_DIR
         value: /app/web/backend/jobs
       - key: GLB_ALLOW_ORIGINS
-        value: "*"
+        value: '["*"]'
 
 static_sites:
   - name: web
