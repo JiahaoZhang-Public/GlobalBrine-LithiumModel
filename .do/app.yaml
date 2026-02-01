@@ -11,12 +11,12 @@ services:
   - name: api
     github:
       repo: JiahaoZhang-Public/GlobalBrine-LithiumModel
-      branch: main            # 根据需要改成你的部署分支
+      branch: feature/web-deploy
       deploy_on_push: true
     source_dir: .
     dockerfile_path: web/backend/Dockerfile
     http_port: 8000
-    instance_size_slug: apps-s-1vcpu-1gb
+    instance_size_slug: apps-d-1vcpu-4gb
     instance_count: 1
     routes:
       - path: /api
@@ -42,7 +42,7 @@ static_sites:
   - name: web
     github:
       repo: JiahaoZhang-Public/GlobalBrine-LithiumModel
-      branch: main            # 根据需要改成你的部署分支
+      branch: feature/web-deploy            # 根据需要改成你的部署分支
       deploy_on_push: true
     source_dir: web/app
     build_command: "npm ci && npm run build"
