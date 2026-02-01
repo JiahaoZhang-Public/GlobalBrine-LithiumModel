@@ -51,4 +51,4 @@ static_sites:
       - path: /
     envs:
       - key: VITE_API_BASE_URL
-        value: ""
+        value: "https://globalbrine-web-gwvzz.ondigitalocean.app"
