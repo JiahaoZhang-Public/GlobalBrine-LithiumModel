@@ -15,8 +15,8 @@ This repository uses lightweight, manual releases via Git tags.
 git checkout main
 git pull --ff-only
 
-git tag -a v0.1.0 -m "v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "v0.2.0"
+git push origin v0.2.0
 ```
 
 5. (GitHub) Create a Release from the tag and paste highlights from `CHANGELOG.md`.
@@ -25,4 +25,3 @@ git push origin v0.1.0
 
 For the next release, bump the version in `setup.py` and `src/__init__.py`, add a new
 section to `CHANGELOG.md`, and repeat the checklist.
-

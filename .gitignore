@@ -126,3 +126,4 @@ web/backend/jobs/
 web/app/node_modules/
 web/app/dist/
 web/app/.vite/
+!web/app/src/lib/

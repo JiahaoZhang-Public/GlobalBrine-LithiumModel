@@ -1,0 +1,56 @@
+name: globalbrine-web
+region: sgp
+features:
+  - buildpack-stack=ubuntu-22
+
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+
+services:
+  - name: api
+    github:
+      repo: JiahaoZhang-Public/GlobalBrine-LithiumModel
+      branch: feature/web-deploy
+      deploy_on_push: true
+    source_dir: .
+    dockerfile_path: web/backend/Dockerfile
+    http_port: 8000
+    instance_size_slug: apps-d-1vcpu-4gb
+    instance_count: 1
+    routes:
+      - path: /api
+        preserve_path_prefix: true   # keep /api prefix so backend sees /api/v1/…
+    health_check:
+      http_path: /api/v1/model
+    envs:
+      - key: GLB_MODEL_VERSION
+        value: "0.2.0"
+      - key: GLB_MAE_PATH
+        value: /app/models/mae_pretrained.pth
+      - key: GLB_HEAD_PATH
+        value: /app/models/downstream_head.pth
+      - key: GLB_SCALER_PATH
+        value: /app/data/processed/feature_scaler.joblib
+      - key: GLB_PREDICTIONS_CSV
+        value: /app/data/predictions/brines_with_predictions.csv
+      - key: GLB_JOB_STORAGE_DIR
+        value: /app/web/backend/jobs
+      - key: GLB_ALLOW_ORIGINS
+        value: '["*"]'
+
+static_sites:
+  - name: web
+    github:
+      repo: JiahaoZhang-Public/GlobalBrine-LithiumModel
+      branch: feature/web-deploy            # 根据需要改成你的部署分支
+      deploy_on_push: true
+    source_dir: web/app
+    build_command: "npm ci && npm run build"
+    output_dir: dist
+    routes:
+      - path: /
+    envs:
+      # Leave empty to use same-origin /api when served behind DO app routing
+      - key: VITE_API_BASE_URL
+        value: ""
