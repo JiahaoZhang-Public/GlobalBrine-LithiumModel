@@ -135,16 +135,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Compat: redirect legacy /v1/* -> /api/v1/*
-@app.middleware("http")
-async def redirect_legacy_v1(request, call_next):
-    path = request.url.path
-    if path.startswith("/v1/"):
-        from fastapi.responses import RedirectResponse
-
-        new_url = request.url.replace(path="/api" + path)
-        return RedirectResponse(str(new_url), status_code=307)
-    return await call_next(request)
+# Legacy aliases (DO path prefix may strip /api). Provide /v1/* endpoints directly.
+app.add_api_route("/v1/model", model_metadata, methods=["GET"], response_model=ModelMetadata)
+app.add_api_route("/v1/data/points", data_points, methods=["GET"], response_model=GeoResponse)
+app.add_api_route("/v1/predict", predict_single, methods=["POST"], response_model=SinglePredictResponse)
 
 app.add_middleware(
     CORSMiddleware,
