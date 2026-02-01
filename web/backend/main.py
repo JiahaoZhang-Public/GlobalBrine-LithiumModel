@@ -135,11 +135,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Legacy aliases (DO path prefix may strip /api). Provide /v1/* endpoints directly.
-app.add_api_route("/v1/model", model_metadata, methods=["GET"], response_model=ModelMetadata)
-app.add_api_route("/v1/data/points", data_points, methods=["GET"], response_model=GeoResponse)
-app.add_api_route("/v1/predict", predict_single, methods=["POST"], response_model=SinglePredictResponse)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().allow_origins or ["*"],
@@ -313,3 +308,32 @@ async def api_index(settings: Settings = Depends(get_settings_dep)) -> JSONRespo
             ],
         }
     )
+
+
+# Legacy aliases (DO path routing may trim the /api prefix). These mirror the /api/v1/* endpoints
+# without introducing redirects that break HTTPS (mixed-content) in browsers. They are hidden from
+# OpenAPI docs to avoid duplicate entries.
+app.add_api_route("/v1", api_index, methods=["GET"], include_in_schema=False)
+app.add_api_route("/v1/model", model_metadata, methods=["GET"], response_model=ModelMetadata, include_in_schema=False)
+app.add_api_route("/v1/data/points", data_points, methods=["GET"], response_model=GeoResponse, include_in_schema=False)
+app.add_api_route("/v1/predict", predict_single, methods=["POST"], response_model=SinglePredictResponse, include_in_schema=False)
+app.add_api_route(
+    "/v1/predict/batch",
+    predict_batch,
+    methods=["POST"],
+    response_model=BatchJobStatus,
+    include_in_schema=False,
+)
+app.add_api_route(
+    "/v1/predict/batch/{job_id}/status",
+    batch_status,
+    methods=["GET"],
+    response_model=BatchJobStatus,
+    include_in_schema=False,
+)
+app.add_api_route(
+    "/v1/predict/batch/{job_id}/result",
+    batch_result,
+    methods=["GET"],
+    include_in_schema=False,
+)

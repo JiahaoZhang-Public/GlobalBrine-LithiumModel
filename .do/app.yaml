@@ -20,6 +20,7 @@ services:
     instance_count: 1
     routes:
       - path: /api
+        preserve_path_prefix: true   # keep /api prefix so backend sees /api/v1/…
     health_check:
       http_path: /api/v1/model
     envs:
@@ -50,5 +51,6 @@ static_sites:
     routes:
       - path: /
     envs:
+      # Leave empty to use same-origin /api when served behind DO app routing
       - key: VITE_API_BASE_URL
         value: ""
