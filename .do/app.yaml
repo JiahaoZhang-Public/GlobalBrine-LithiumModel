@@ -11,7 +11,7 @@ services:
   - name: api
     github:
       repo: JiahaoZhang-Public/GlobalBrine-LithiumModel
-      branch: feature/web-deploy
+      branch: main
       deploy_on_push: true
     source_dir: .
     dockerfile_path: web/backend/Dockerfile
@@ -43,7 +43,7 @@ static_sites:
   - name: web
     github:
       repo: JiahaoZhang-Public/GlobalBrine-LithiumModel
-      branch: feature/web-deploy            # 根据需要改成你的部署分支
+      branch: main          
       deploy_on_push: true
     source_dir: web/app
     build_command: "npm ci && npm run build"

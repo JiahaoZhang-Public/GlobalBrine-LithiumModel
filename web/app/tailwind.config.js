@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Inter"', '"IBM Plex Sans"', "ui-sans-serif", "system-ui"],
+        sans: ['"Space Grotesk"', '"Source Sans 3"', "ui-sans-serif", "system-ui"],
       },
       colors: {
         ink: "#0B1021",

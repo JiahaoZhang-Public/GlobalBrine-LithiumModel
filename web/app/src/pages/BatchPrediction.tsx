@@ -38,7 +38,7 @@ export default function BatchPrediction() {
     <div className="space-y-6">
       <PageHeader
         title="Batch Prediction Jobs"
-        subtitle="Upload a CSV (TDS_gL, MLR, Light_kW_m2). Jobs run asynchronously and return a downloadable CSV with predictions."
+        subtitle="Upload CSV with TDS_gL, MLR, Light_kW_m2 (g/L, unitless, kW/m²). Jobs run asynchronously and return a downloadable CSV with predictions."
         actions={
           <a
             href="/examples/experimental_samples.csv"
@@ -59,7 +59,7 @@ export default function BatchPrediction() {
                 {file ? file.name : "Choose a CSV to upload"}
               </p>
               <p className="text-sm text-slate-400">
-                Max ~200k rows. Required columns: TDS_gL, MLR, Light_kW_m2.
+                Max ~200k rows. Required columns: TDS_gL, MLR, Light_kW_m2. Units must match.
               </p>
             </div>
             <input
@@ -100,9 +100,9 @@ export default function BatchPrediction() {
               className={`px-2 py-1 rounded-full text-xs ${
                 status.status === "completed"
                   ? "bg-emerald-500/20 text-emerald-200"
-                  : status.status === "failed"
-                  ? "bg-rose-500/20 text-rose-200"
-                  : "bg-amber-500/20 text-amber-200"
+                : status.status === "failed"
+                ? "bg-rose-500/20 text-rose-200"
+                : "bg-amber-500/20 text-amber-200"
               }`}
             >
               {status.status}
@@ -127,6 +127,9 @@ export default function BatchPrediction() {
           )}
           <p className="text-xs text-slate-400">
             Submitted at {new Date(status.submitted_at).toLocaleString()}
+          </p>
+          <p className="text-xs text-slate-400">
+            Outputs are point estimates; ensure downstream analyses note unit assumptions.
           </p>
         </div>
       )}

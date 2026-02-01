@@ -8,7 +8,7 @@ const navItems = [
   { to: "/map", label: "Map Explorer", icon: Map },
   { to: "/predict", label: "Single Prediction", icon: FlaskConical },
   { to: "/batch", label: "Batch Jobs", icon: UploadCloud },
-  { to: "/model", label: "Model & Repro", icon: Info },
+  { to: "/model", label: "Repro & Limits", icon: Info },
 ];
 
 export default function Layout({ children }: PropsWithChildren) {
@@ -24,9 +24,7 @@ export default function Layout({ children }: PropsWithChildren) {
             </div>
             <div>
               <p className="text-lg font-semibold">GlobalBrine</p>
-              <p className="text-xs text-slate-300">
-                Lithium selectivity intelligence
-              </p>
+              <p className="text-xs text-slate-300">Lithium selectivity for brine science</p>
             </div>
           </Link>
           <div className="hidden md:flex items-center gap-2 px-2 py-1 rounded-full border border-white/10 bg-white/5">
@@ -51,19 +49,17 @@ export default function Layout({ children }: PropsWithChildren) {
             })}
           </div>
           <div className="flex items-center gap-2">
-            <a
+            <Link
+              to="/model"
               className="pill px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition"
-              href="https://github.com/JiahaoZhang-Public/GlobalBrine-LithiumModel"
-              target="_blank"
-              rel="noreferrer"
             >
-              GitHub
-            </a>
+              Methods & limits
+            </Link>
             <Link
               to="/map"
               className="px-3 py-2 text-sm rounded-full bg-gradient-to-r from-sky-400 to-fuchsia-500 text-slate-900 font-semibold shadow-lg"
             >
-              Launch
+              Launch explorer
             </Link>
           </div>
         </header>

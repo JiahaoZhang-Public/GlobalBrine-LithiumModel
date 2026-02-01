@@ -93,23 +93,26 @@ export default function BrineMap({
   return (
     <div className="relative rounded-2xl overflow-hidden border border-white/10 glass">
       <div className="absolute z-10 left-4 top-4 flex flex-col gap-2">
-        <div className="pill px-3 py-2 text-xs text-slate-200 backdrop-blur">
+        <div className="pill px-3 py-2 text-xs text-slate-900 bg-white/80">
           {filtered.length.toLocaleString()} sites
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate-200 bg-black/40 px-3 py-2 rounded-xl border border-white/10">
+        <label className="flex items-center gap-2 text-sm text-slate-100 bg-black/50 px-3 py-2 rounded-xl border border-white/10 shadow-lg">
           Color by
           <select
             className="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-slate-100"
             value={variable}
             onChange={(e) => onVariableChange(e.target.value)}
           >
-            <option value="Pred_Selectivity">Selectivity</option>
+            <option value="Pred_Selectivity">Selectivity (unitless)</option>
             <option value="Pred_Li_Crystallization_mg_m2_h">
-              Li crystallization
+              Li crystallization (mg/m²·h)
             </option>
-            <option value="Pred_Evap_kg_m2_h">Evaporation</option>
+            <option value="Pred_Evap_kg_m2_h">Evaporation (kg/m²·h)</option>
           </select>
         </label>
+        <div className="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200">
+          Teal → magenta indicates low → high value. Hover to see exact numbers and units.
+        </div>
       </div>
 
       <Map

@@ -5,7 +5,7 @@ import { predictSingle } from "../lib/api";
 import PageHeader from "../components/PageHeader";
 import Loading from "../components/Loading";
 import { StatCard } from "../components/StatCard";
-import { FlaskConical, Sparkles, Waves } from "lucide-react";
+import { FlaskConical, Sparkles, Waves, Info } from "lucide-react";
 
 const fields: { key: string; label: string; placeholder?: string }[] = [
   { key: "Li_gL", label: "Li (g/L)" },
@@ -51,7 +51,7 @@ export default function SinglePrediction() {
     <div className="space-y-6">
       <PageHeader
         title="Single-Point Prediction"
-        subtitle="Enter one brine sample. Missing fields will be MAE-imputed if you keep imputation enabled."
+        subtitle="Enter one brine sample. Missing fields can be imputed. Units: g/L for chemistry, kW/m² for light."
         actions={
           <label className="flex items-center gap-2 text-sm text-slate-100 pill px-3 py-2 bg-black/30">
             <input
@@ -148,10 +148,13 @@ export default function SinglePrediction() {
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-slate-400 mt-3">
-                Outputs are clamped to non-negative values. Model metadata is displayed on the
-                Model &amp; Reproducibility page.
-              </p>
+              <div className="flex items-start gap-2 text-xs text-slate-300 mt-3">
+                <Info size={14} className="text-cyan-300 mt-0.5" />
+                <div>
+                  Outputs are clamped to non-negative values. Predictions are point estimates; no
+                  uncertainty bands yet. See Repro & Limits for applicability notes.
+                </div>
+              </div>
             </div>
           )}
         </div>

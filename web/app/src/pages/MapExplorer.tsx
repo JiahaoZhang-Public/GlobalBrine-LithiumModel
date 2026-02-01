@@ -53,6 +53,13 @@ export default function MapExplorer() {
   if (isLoading) return <Loading label="Loading map data…" />;
   if (error || !data) return <p className="text-red-300">Unable to load map data.</p>;
 
+  const filtered = data.features.filter((f) => {
+    const props = f.properties || {};
+    const tds = Number(props["TDS_gL"]);
+    const mlr = Number(props["MLR"]);
+    return inRange(tds, tdsRange) && inRange(mlr, mlrRange);
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -79,65 +86,106 @@ export default function MapExplorer() {
         ))}
       </div>
 
-      <div className="glass rounded-2xl border border-white/10 p-4 space-y-3">
+      <div className="glass rounded-2xl border border-white/10 p-4 space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
           <span className="pill px-3 py-2 flex items-center gap-2">
-            <SlidersHorizontal size={16} />
-            Filters
+            <SlidersHorizontal size={16} /> Filters
           </span>
-          <label className="flex items-center gap-2">
-            TDS ≥
-            <input
-              type="number"
-              value={tdsRange?.[0] ?? ""}
-              onChange={(e) =>
-                setTdsRange([
-                  Number(e.target.value),
-                  tdsRange?.[1] ?? data.meta?.TDS_gL?.max ?? 0,
-                ])
-              }
-              className="bg-black/40 border border-white/10 rounded-md px-2 py-1 w-24 text-slate-100"
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            TDS ≤
-            <input
-              type="number"
-              value={tdsRange?.[1] ?? ""}
-              onChange={(e) =>
-                setTdsRange([
-                  tdsRange?.[0] ?? data.meta?.TDS_gL?.min ?? 0,
-                  Number(e.target.value),
-                ])
-              }
-              className="bg-black/40 border border-white/10 rounded-md px-2 py-1 w-24 text-slate-100"
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            MLR ≤
-            <input
-              type="number"
-              value={mlrRange?.[1] ?? ""}
-              onChange={(e) =>
-                setMlrRange([
-                  mlrRange?.[0] ?? 0,
-                  Number(e.target.value),
-                ])
-              }
-              className="bg-black/40 border border-white/10 rounded-md px-2 py-1 w-24 text-slate-100"
-            />
-          </label>
+          <span className="text-slate-400">Units: TDS g/L • MLR molar ratio</span>
+          <span className="pill px-2 py-1 text-xs text-emerald-200">
+            {filtered.length} shown / {data.features.length}
+          </span>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-slate-100">
+          <RangeInput
+            label="TDS range (g/L)"
+            value={tdsRange}
+            onChange={setTdsRange}
+            min={data.meta?.TDS_gL?.min ?? 0}
+            max={data.meta?.TDS_gL?.max ?? 500}
+          />
+          <RangeInput
+            label="MLR range"
+            value={mlrRange}
+            onChange={setMlrRange}
+            min={data.meta?.MLR?.min ?? 0}
+            max={data.meta?.MLR?.max ?? 50}
+          />
+          <div className="bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-slate-300">
+            Color key: selectivity (teal → magenta). Hover a point for exact values and units.
+          </div>
         </div>
       </div>
 
       <BrineMap
-        data={data.features}
+        data={filtered}
         meta={data.meta}
         variable={variable}
         onVariableChange={setVariable}
         tdsRange={tdsRange}
         mlrRange={mlrRange}
       />
+    </div>
+  );
+}
+
+function inRange(val: number | null | undefined, range: [number, number] | null) {
+  if (val === null || val === undefined || Number.isNaN(val)) return false;
+  if (!range) return true;
+  const [min, max] = range;
+  const lowOk = min === null || min === undefined ? true : val >= min;
+  const highOk = max === null || max === undefined ? true : val <= max;
+  return lowOk && highOk;
+}
+
+type RangeInputProps = {
+  label: string;
+  value: [number, number] | null;
+  onChange: (v: [number, number]) => void;
+  min: number;
+  max: number;
+};
+
+function RangeInput({ label, value, onChange, min, max }: RangeInputProps) {
+  const [localMin, localMax] = value ?? [min, max];
+  return (
+    <div className="bg-black/30 border border-white/10 rounded-xl p-3 space-y-2">
+      <p className="text-slate-300 text-sm">{label}</p>
+      <div className="flex items-center gap-2">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step="1"
+          value={localMin}
+          onChange={(e) => onChange([Number(e.target.value), localMax])}
+          className="flex-1"
+        />
+        <input
+          type="number"
+          value={localMin}
+          onChange={(e) => onChange([Number(e.target.value), localMax])}
+          className="w-20 bg-black/40 border border-white/10 rounded-md px-2 py-1"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step="1"
+          value={localMax}
+          onChange={(e) => onChange([localMin, Number(e.target.value)])}
+          className="flex-1"
+        />
+        <input
+          type="number"
+          value={localMax}
+          onChange={(e) => onChange([localMin, Number(e.target.value)])}
+          className="w-20 bg-black/40 border border-white/10 rounded-md px-2 py-1"
+        />
+      </div>
+      <p className="text-xs text-slate-400">Showing {localMin} – {localMax}</p>
     </div>
   );
 }
