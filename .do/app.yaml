@@ -60,4 +60,4 @@ static_sites:
     output_dir: dist
     envs:
       - key: VITE_API_BASE_URL
-        value: "https://globalbrine-web-gwvzz.ondigitalocean.app"
+        value: ""
