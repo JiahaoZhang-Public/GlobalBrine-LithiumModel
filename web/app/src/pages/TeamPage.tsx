@@ -2,7 +2,7 @@ import PageHeader from "../components/PageHeader";
 
 const team = [
   {
-    org: "MBZUAI — Complex AI & Web Platform",
+    org: "MBZUAI — ML Department",
     roles: [
       {
         title: "Faculty mentor",
