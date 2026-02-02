@@ -6,7 +6,7 @@ Global ML model for lithium extraction metrics from brine chemistry and irradian
 Versioning & Release
 ------------
 
-- Current version: `0.2.0`
+- Current version: `0.2.1`
 - Changelog: `CHANGELOG.md`
 - Tagging checklist: `RELEASING.md`
 
@@ -43,6 +43,18 @@ uvicorn web.backend.main:app --reload
 # Frontend (new terminal)
 cd web/app && npm install && npm run dev  # proxies /api to localhost:8000
 ```
+
+**Public site**
+
+- Production (DigitalOcean): https://globalbrine-web-gwvzz.ondigitalocean.app/
+
+Homepage preview:
+
+![GlobalBrine homepage](web/app/public/homepage.png)
+
+**Model pipeline overview**
+
+![GlobalBrine pipeline](assets/figures/Enhanced_Global_Lithium_Pipeline_Diagram.svg)
 
 Environment Setup
 ------------

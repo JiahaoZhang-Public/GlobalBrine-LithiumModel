@@ -50,6 +50,14 @@ export default function Layout({ children }: PropsWithChildren) {
             })}
           </div>
           <div className="flex items-center gap-2">
+            <a
+              href="https://github.com/JiahaoZhang-Public/GlobalBrine-LithiumModel"
+              target="_blank"
+              rel="noreferrer"
+              className="pill px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition"
+            >
+              Code repo
+            </a>
             <Link
               to="/model"
               className="pill px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition"
