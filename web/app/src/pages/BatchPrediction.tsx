@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { startBatchJob, fetchBatchStatus, batchResultUrl } from "../lib/api";
 import PageHeader from "../components/PageHeader";
-import { CloudUpload, Download, Loader2 } from "lucide-react";
+import { CloudUpload, Download, Loader2, Info, Table as TableIcon } from "lucide-react";
+
+const sampleRows = [
+  { TDS_gL: 220, MLR: 4.5, Light_kW_m2: 0.22 },
+  { TDS_gL: 140, MLR: 2.1, Light_kW_m2: 0.18 },
+  { TDS_gL: 320, MLR: 8.9, Light_kW_m2: 0.27 },
+];
 
 export default function BatchPrediction() {
   const [file, setFile] = useState<File | null>(null);
@@ -86,6 +92,43 @@ export default function BatchPrediction() {
           >
             Start job
           </button>
+        </div>
+        <div className="grid lg:grid-cols-2 gap-3">
+          <div className="bg-black/25 border border-white/10 rounded-xl p-4 text-sm text-slate-200 space-y-2">
+            <div className="flex items-center gap-2 text-slate-100 font-semibold">
+              <TableIcon size={16} /> Example rows
+            </div>
+            <table className="w-full text-xs">
+              <thead className="text-slate-300 text-left border-b border-white/10">
+                <tr>
+                  <th className="py-1 pr-3">TDS_gL</th>
+                  <th className="py-1 pr-3">MLR</th>
+                  <th className="py-1 pr-3">Light_kW_m2</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sampleRows.map((r, i) => (
+                  <tr key={i} className="border-b border-white/5">
+                    <td className="py-1 pr-3">{r.TDS_gL}</td>
+                    <td className="py-1 pr-3">{r.MLR}</td>
+                    <td className="py-1 pr-3">{r.Light_kW_m2}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-slate-400">Copy these values into your CSV to sanity-check format.</p>
+          </div>
+          <div className="bg-black/25 border border-white/10 rounded-xl p-4 text-xs text-slate-300 space-y-2">
+            <div className="flex items-center gap-2 text-slate-100 font-semibold text-sm">
+              <Info size={14} /> Quick recipe
+            </div>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Create CSV header exactly: TDS_gL,MLR,Light_kW_m2.</li>
+              <li>Use g/L for TDS, unitless MLR, kW/m² for irradiance.</li>
+              <li>Missing values allowed; enable “Impute missing chemistry” if gaps exist.</li>
+              <li>Keep row count &lt; 200k; larger jobs split into multiple uploads.</li>
+            </ol>
+          </div>
         </div>
         {error && <p className="text-red-300 text-sm">{error}</p>}
       </div>

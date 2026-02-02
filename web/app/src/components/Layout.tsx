@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Sparkles, Map, UploadCloud, FlaskConical, Info } from "lucide-react";
+import { Sparkles, Map, UploadCloud, FlaskConical, Info, Users } from "lucide-react";
 import clsx from "clsx";
 
 const navItems = [
@@ -9,6 +9,7 @@ const navItems = [
   { to: "/predict", label: "Single Prediction", icon: FlaskConical },
   { to: "/batch", label: "Batch Jobs", icon: UploadCloud },
   { to: "/model", label: "Repro & Limits", icon: Info },
+  { to: "/team", label: "Team", icon: Users },
 ];
 
 export default function Layout({ children }: PropsWithChildren) {

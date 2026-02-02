@@ -5,20 +5,33 @@ import { predictSingle } from "../lib/api";
 import PageHeader from "../components/PageHeader";
 import Loading from "../components/Loading";
 import { StatCard } from "../components/StatCard";
-import { FlaskConical, Sparkles, Waves, Info } from "lucide-react";
+import { FlaskConical, Sparkles, Waves, Info, Wand2 } from "lucide-react";
 
 const fields: { key: string; label: string; placeholder?: string }[] = [
-  { key: "Li_gL", label: "Li (g/L)" },
-  { key: "Mg_gL", label: "Mg (g/L)" },
-  { key: "Na_gL", label: "Na (g/L)" },
-  { key: "K_gL", label: "K (g/L)" },
-  { key: "Ca_gL", label: "Ca (g/L)" },
-  { key: "SO4_gL", label: "SO₄ (g/L)" },
-  { key: "Cl_gL", label: "Cl (g/L)" },
-  { key: "TDS_gL", label: "TDS (g/L)", placeholder: "350" },
-  { key: "MLR", label: "MLR", placeholder: "5.0" },
-  { key: "Light_kW_m2", label: "Light (kW/m²)", placeholder: "0.25" },
+  { key: "Li_gL", label: "Li (g/L)", placeholder: "0.05" },
+  { key: "Mg_gL", label: "Mg (g/L)", placeholder: "8.2" },
+  { key: "Na_gL", label: "Na (g/L)", placeholder: "95" },
+  { key: "K_gL", label: "K (g/L)", placeholder: "3.1" },
+  { key: "Ca_gL", label: "Ca (g/L)", placeholder: "1.8" },
+  { key: "SO4_gL", label: "SO₄ (g/L)", placeholder: "6.4" },
+  { key: "Cl_gL", label: "Cl (g/L)", placeholder: "110" },
+  { key: "TDS_gL", label: "TDS (g/L)", placeholder: "240" },
+  { key: "MLR", label: "MLR", placeholder: "4.5" },
+  { key: "Light_kW_m2", label: "Light (kW/m²)", placeholder: "0.22" },
 ];
+
+const exampleValues: Record<string, string> = {
+  Li_gL: "0.05",
+  Mg_gL: "8.2",
+  Na_gL: "95",
+  K_gL: "3.1",
+  Ca_gL: "1.8",
+  SO4_gL: "6.4",
+  Cl_gL: "110",
+  TDS_gL: "240",
+  MLR: "4.5",
+  Light_kW_m2: "0.22",
+};
 
 export default function SinglePrediction() {
   const [form, setForm] = useState<Record<string, string>>({});
@@ -69,6 +82,20 @@ export default function SinglePrediction() {
           onSubmit={onSubmit}
           className="glass rounded-2xl p-6 border border-white/10 space-y-4"
         >
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
+            <button
+              type="button"
+              onClick={() => setForm(exampleValues)}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white text-slate-900 font-semibold shadow-lg"
+            >
+              <Wand2 size={16} />
+              Fill with example
+            </button>
+            <span className="text-slate-400">
+              Example reflects a mid-range salar sample; adjust values to your site.
+            </span>
+          </div>
+
           <div className="grid sm:grid-cols-2 gap-4">
             {fields.map((field) => (
               <label key={field.key} className="flex flex-col gap-1 text-sm">

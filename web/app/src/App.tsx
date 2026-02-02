@@ -5,6 +5,7 @@ import MapExplorer from "./pages/MapExplorer";
 import SinglePrediction from "./pages/SinglePrediction";
 import BatchPrediction from "./pages/BatchPrediction";
 import ModelPage from "./pages/ModelPage";
+import TeamPage from "./pages/TeamPage";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/predict" element={<SinglePrediction />} />
         <Route path="/batch" element={<BatchPrediction />} />
         <Route path="/model" element={<ModelPage />} />
+        <Route path="/team" element={<TeamPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
