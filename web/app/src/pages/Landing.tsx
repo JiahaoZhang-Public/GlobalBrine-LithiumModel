@@ -4,11 +4,13 @@ import { fetchGeo, fetchModelMetadata } from "../lib/api";
 import { StatCard } from "../components/StatCard";
 import Loading from "../components/Loading";
 import { Compass, Cpu, Globe2, Ruler } from "lucide-react";
-import DatasetPreview from "../components/DatasetPreview";
+import DatasetDownloads from "../components/DatasetDownloads";
+import { useI18n } from "../lib/i18n";
 
 export default function Landing() {
   const { data: model } = useQuery({ queryKey: ["model"], queryFn: fetchModelMetadata });
   const { data: geo, isLoading } = useQuery({ queryKey: ["geo"], queryFn: fetchGeo });
+  const { t, lang } = useI18n();
 
   const sampleCount = geo?.features.length ?? 0;
   const mapCoverage = geo?.meta?.count ?? sampleCount;
@@ -20,27 +22,26 @@ export default function Landing() {
         <div className="relative grid md:grid-cols-2 gap-8 items-center">
           <div className="space-y-5">
             <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-300 pill px-3 py-2">
-              GlobalBrine • Scientist view
+              {t("landing.pill")}
             </p>
             <h1 className="text-4xl md:text-5xl font-semibold leading-tight">
-              Predict lithium selectivity from brine chemistry—interactive, reproducible, global.
+              {t("landing.title")}
             </h1>
             <p className="text-slate-300 text-lg">
-              Built for experimentalists: visualize global brine signals, submit site chemistry, and export
-              reproducible predictions with units and validity notes. No code required.
+              {t("landing.desc")}
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 to="/map"
                 className="px-4 py-3 rounded-full bg-gradient-to-r from-sky-400 to-fuchsia-500 text-slate-900 font-semibold shadow-lg"
               >
-                Open Map Explorer
+                {t("landing.cta.map")}
               </Link>
               <Link
                 to="/predict"
                 className="pill px-4 py-3 text-slate-100 hover:bg-white/10 transition"
               >
-                Single prediction
+                {t("landing.cta.predict")}
               </Link>
               <span className="text-slate-400 text-sm">
                 Model v{model?.version ?? "0.1.x"} • inputs in g/L, kW/m²
@@ -61,32 +62,32 @@ export default function Landing() {
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               <StatCard
-                label="Global samples"
+                label={t("landing.stat.global")}
                 value={mapCoverage.toLocaleString()}
-                helper="Sites with modeled signals"
+                helper={t("landing.stat.helper.global")}
                 icon={<Globe2 size={20} />}
                 tone="primary"
               />
               <StatCard
-                label="Inputs"
+                label={t("landing.stat.inputs")}
                 value="g/L + kW/m²"
-                helper="TDS, MLR, major ions"
+                helper={t("landing.stat.helper.inputs")}
                 icon={<Ruler size={20} />}
                 tone="secondary"
               />
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               <StatCard
-                label="Turnaround"
+                label={t("landing.stat.turnaround")}
                 value="< 1 s"
-                helper="Single-point estimate"
+                helper={t("landing.stat.helper.turnaround")}
                 icon={<Cpu size={20} />}
                 tone="success"
               />
               <StatCard
-                label="Provenance"
+                label={t("landing.stat.provenance")}
                 value={model?.git_tag ?? "tagged release"}
-                helper="Version + checksums"
+                helper={t("landing.stat.helper.provenance")}
                 icon={<Compass size={20} />}
                 tone="warning"
               />
@@ -96,50 +97,41 @@ export default function Landing() {
       </section>
 
       <section>
-        <DatasetPreview />
+        <DatasetDownloads />
       </section>
 
       <section className="grid md:grid-cols-3 gap-6">
         <div className="glass rounded-2xl p-5 border border-white/10">
           <p className="text-sm text-slate-300">01</p>
-          <h3 className="text-xl font-semibold mt-1">Global visualization</h3>
-          <p className="text-slate-300 mt-2">
-            Explore modeled selectivity, crystallization, and evaporation across all brine points with
-            chemistry filters and hover details.
-          </p>
+          <h3 className="text-xl font-semibold mt-1">{t("landing.card1.title")}</h3>
+          <p className="text-slate-300 mt-2">{t("landing.card1.desc")}</p>
         </div>
         <div className="glass rounded-2xl p-5 border border-white/10">
           <p className="text-sm text-slate-300">02</p>
-          <h3 className="text-xl font-semibold mt-1">Instant inference</h3>
-          <p className="text-slate-300 mt-2">
-            Enter a single sample—partial inputs allowed—and view imputed chemistry plus predictions
-            with units and quick interpretation.
-          </p>
+          <h3 className="text-xl font-semibold mt-1">{t("landing.card2.title")}</h3>
+          <p className="text-slate-300 mt-2">{t("landing.card2.desc")}</p>
         </div>
         <div className="glass rounded-2xl p-5 border border-white/10">
           <p className="text-sm text-slate-300">03</p>
-          <h3 className="text-xl font-semibold mt-1">Batch jobs</h3>
-          <p className="text-slate-300 mt-2">
-            Upload CSVs, run asynchronous jobs, and retrieve results with reproducible checksums, job
-            identifiers, and schema guidance.
-          </p>
+          <h3 className="text-xl font-semibold mt-1">{t("landing.card3.title")}</h3>
+          <p className="text-slate-300 mt-2">{t("landing.card3.desc")}</p>
         </div>
       </section>
 
       {isLoading ? (
-        <Loading label="Loading sample coverage…" />
+        <Loading label={lang === "zh" ? "正在加载覆盖范围…" : "Loading sample coverage…"} />
       ) : (
         <section className="glass rounded-2xl p-6 border border-white/10">
-          <h3 className="text-xl font-semibold mb-2">Coverage snapshot</h3>
+          <h3 className="text-xl font-semibold mb-2">{t("landing.coverage.title")}</h3>
           <div className="flex flex-wrap gap-2 text-sm text-slate-300">
             <span className="pill px-3 py-1">
-              {mapCoverage.toLocaleString()} points
+              {mapCoverage.toLocaleString()} {lang === "zh" ? t("landing.coverage.points") : "points"}
             </span>
             <span className="pill px-3 py-1">
-              Min TDS {geo?.meta?.TDS_gL?.min?.toFixed?.(1) ?? "–"} g/L
+              {t("landing.coverage.min")} {geo?.meta?.TDS_gL?.min?.toFixed?.(1) ?? "–"} g/L
             </span>
             <span className="pill px-3 py-1">
-              Max selectivity {geo?.meta?.Pred_Selectivity?.max?.toFixed?.(2) ?? "–"}
+              {t("landing.coverage.max")} {geo?.meta?.Pred_Selectivity?.max?.toFixed?.(2) ?? "–"}
             </span>
           </div>
         </section>

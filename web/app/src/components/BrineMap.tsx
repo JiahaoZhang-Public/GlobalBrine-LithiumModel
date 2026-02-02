@@ -8,6 +8,7 @@ import Map, {
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoFeature } from "../lib/types";
+import { useI18n } from "../lib/i18n";
 
 type Props = {
   data: GeoFeature[];
@@ -40,6 +41,7 @@ export default function BrineMap({
   mlrRange,
 }: Props) {
   const [hover, setHover] = useState<GeoFeature | null>(null);
+  const { t, lang } = useI18n();
 
   const filtered = useMemo(() => {
     return data.filter((f) => {
@@ -94,24 +96,24 @@ export default function BrineMap({
     <div className="relative rounded-2xl overflow-hidden border border-white/10 glass">
       <div className="absolute z-10 left-4 top-4 flex flex-col gap-2">
         <div className="pill px-3 py-2 text-xs text-slate-900 bg-white/80">
-          {filtered.length.toLocaleString()} sites
+          {filtered.length.toLocaleString()} {lang === "zh" ? "个点" : "sites"}
         </div>
         <label className="flex items-center gap-2 text-sm text-slate-100 bg-black/50 px-3 py-2 rounded-xl border border-white/10 shadow-lg">
-          Color by
+          {t("map.color.by")}
           <select
             className="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-slate-100"
             value={variable}
             onChange={(e) => onVariableChange(e.target.value)}
           >
-            <option value="Pred_Selectivity">Selectivity (unitless)</option>
+            <option value="Pred_Selectivity">{t("map.option.selectivity")}</option>
             <option value="Pred_Li_Crystallization_mg_m2_h">
-              Li crystallization (mg/m²·h)
+              {t("map.option.crystallization")}
             </option>
-            <option value="Pred_Evap_kg_m2_h">Evaporation (kg/m²·h)</option>
+            <option value="Pred_Evap_kg_m2_h">{t("map.option.evap")}</option>
           </select>
         </label>
         <div className="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200">
-          Teal → magenta indicates low → high value. Hover to see exact numbers and units.
+          {t("map.legend")}
         </div>
       </div>
 
@@ -135,7 +137,7 @@ export default function BrineMap({
 
       {hover && (
         <div className="absolute bottom-4 left-4 bg-black/70 rounded-xl border border-white/10 px-3 py-2 text-sm max-w-sm">
-          <p className="font-semibold">{hover.properties?.Brine || "Sample"}</p>
+          <p className="font-semibold">{hover.properties?.Brine || (lang === "zh" ? t("map.sample") : "Sample")}</p>
           <p className="text-slate-300">
             {hover.properties?.Location} • MLR {hover.properties?.MLR ?? "–"} • TDS{" "}
             {hover.properties?.TDS_gL ?? "–"} g/L

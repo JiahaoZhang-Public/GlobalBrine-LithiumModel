@@ -1,4 +1,5 @@
 import PageHeader from "../components/PageHeader";
+import { useI18n } from "../lib/i18n";
 
 const team = [
   {
@@ -33,18 +34,19 @@ const team = [
 ];
 
 export default function TeamPage() {
+  const { t } = useI18n();
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Team & Credits"
-        subtitle="Contributors to modeling, web platform, and global brine data collection."
+        title={t("team.title")}
+        subtitle={t("team.subtitle")}
       />
 
       <div className="grid md:grid-cols-2 gap-4">
         {team.map((item) => (
           <div key={item.org} className="glass rounded-2xl border border-white/10 p-5 space-y-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Organization</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{t("team.org")}</p>
               <h3 className="text-xl font-semibold mt-1">{item.org}</h3>
               {item.description && (
                 <p className="text-slate-300 text-sm mt-1">{item.description}</p>
@@ -53,7 +55,15 @@ export default function TeamPage() {
             <div className="space-y-2">
               {item.roles.map((r) => (
                 <div key={r.name} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-                  <p className="text-sm text-slate-200 font-semibold">{r.title}</p>
+                  <p className="text-sm text-slate-200 font-semibold">
+                    {r.title === "Faculty mentor"
+                      ? t("team.role.faculty")
+                      : r.title === "Implementation lead"
+                      ? t("team.role.lead")
+                      : r.title === "Group contact"
+                      ? t("team.role.contact")
+                      : r.title}
+                  </p>
                   <p className="text-slate-100">{r.name}</p>
                   {"url" in r && r.url && (
                     <a
@@ -62,7 +72,7 @@ export default function TeamPage() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Personal site
+                      {t("team.personalsite")}
                     </a>
                   )}
                   {r.email && (

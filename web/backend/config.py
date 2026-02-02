@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     api_prefix: str = "/api/v1"
-    model_version: str = "0.2.1"
+    model_version: str = "0.2.2"
     git_tag: str | None = None
 
     mae_path: Path = Path("models/mae_pretrained.pth")
