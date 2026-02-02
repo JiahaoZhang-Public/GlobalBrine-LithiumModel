@@ -5,12 +5,14 @@ import BrineMap from "../components/BrineMap";
 import PageHeader from "../components/PageHeader";
 import Loading from "../components/Loading";
 import { SlidersHorizontal } from "lucide-react";
+import { useI18n } from "../lib/i18n";
 
 export default function MapExplorer() {
   const { data, isLoading, error } = useQuery({ queryKey: ["geo"], queryFn: fetchGeo });
   const [variable, setVariable] = useState("Pred_Selectivity");
   const [tdsRange, setTdsRange] = useState<[number, number] | null>(null);
   const [mlrRange, setMlrRange] = useState<[number, number] | null>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!data) return;
@@ -28,21 +30,21 @@ export default function MapExplorer() {
     if (!data) return [];
     return [
       {
-        label: "Points",
+        label: t("map.meta.points"),
         value: data.features.length.toLocaleString(),
       },
       {
-        label: "Selectivity (max)",
+        label: t("map.meta.selectivity"),
         value: data.meta?.Pred_Selectivity?.max?.toFixed?.(2) ?? "–",
       },
       {
-        label: "TDS range",
+        label: t("map.meta.tds"),
         value: `${data.meta?.TDS_gL?.min?.toFixed?.(1) ?? "–"} – ${
           data.meta?.TDS_gL?.max?.toFixed?.(1) ?? "–"
         } g/L`,
       },
       {
-        label: "MLR range",
+        label: t("map.meta.mlr"),
         value: `${data.meta?.MLR?.min?.toFixed?.(2) ?? "–"} – ${
           data.meta?.MLR?.max?.toFixed?.(2) ?? "–"
         }`,
@@ -50,8 +52,8 @@ export default function MapExplorer() {
     ];
   }, [data]);
 
-  if (isLoading) return <Loading label="Loading map data…" />;
-  if (error || !data) return <p className="text-red-300">Unable to load map data.</p>;
+  if (isLoading) return <Loading label={t("map.title") + "…"} />;
+  if (error || !data) return <p className="text-red-300">{t("datasets.preview.error")}</p>;
 
   const filtered = data.features.filter((f) => {
     const props = f.properties || {};
@@ -63,8 +65,8 @@ export default function MapExplorer() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Global Map Explorer"
-        subtitle="Visualize predicted selectivity, crystallization, and evaporation across all known brine sites."
+        title={t("map.title")}
+        subtitle={t("map.subtitle")}
         actions={
           <div className="pill px-3 py-2 text-sm text-slate-200 bg-black/30 border border-white/10">
             Updated{" "}
@@ -89,9 +91,9 @@ export default function MapExplorer() {
       <div className="glass rounded-2xl border border-white/10 p-4 space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
           <span className="pill px-3 py-2 flex items-center gap-2">
-            <SlidersHorizontal size={16} /> Filters
+            <SlidersHorizontal size={16} /> {t("map.filters")}
           </span>
-          <span className="text-slate-400">Units: TDS g/L • MLR molar ratio</span>
+          <span className="text-slate-400">{t("map.units")}</span>
           <span className="pill px-2 py-1 text-xs text-emerald-200">
             {filtered.length} shown / {data.features.length}
           </span>
@@ -112,7 +114,7 @@ export default function MapExplorer() {
             max={data.meta?.MLR?.max ?? 50}
           />
           <div className="bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-slate-300">
-            Color key: selectivity (teal → magenta). Hover a point for exact values and units.
+            {t("map.color.key")}
           </div>
         </div>
       </div>

@@ -45,7 +45,7 @@ Provide an interactive, reproducible, and visually compelling platform that allo
 	•	Downloadable prediction results (CSV)
 	•	Optional visualization as a map layer
 	4.	Reproducibility & Transparency
-	•	Display current model version (e.g. v0.2.1)
+	•	Display current model version (e.g. v0.2.2)
 	•	Link predictions to:
 	•	Git tag
 	•	CHANGELOG entry

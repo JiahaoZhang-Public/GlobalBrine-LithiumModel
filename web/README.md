@@ -4,7 +4,7 @@ End-to-end web experience for the GlobalBrine-LithiumModel: FastAPI backend + Re
 
 ## Version
 
-- Web UI: **v0.2.1** — February 2, 2026
+- Web UI: **v0.2.2** — February 2, 2026
 - Backend/API: aligned to model artifacts `models/mae_pretrained.pth` + `models/downstream_head.pth`
 - Key endpoints: `/api/v1/model`, `/api/v1/data/points`, `/api/v1/predict`, `/api/v1/predict/batch`
 - Theme: dark glassmorphism, MapLibre map layers, CSV batch upload with in-memory job store
@@ -34,7 +34,7 @@ Homepage preview:
 
 ## Environment switches
 
-- `GLB_MODEL_VERSION` (default `0.2.1`)
+- `GLB_MODEL_VERSION` (default `0.2.2`)
 - `GLB_MAE_PATH`, `GLB_HEAD_PATH`, `GLB_SCALER_PATH` (defaults to `models/` and `data/processed/feature_scaler.joblib`)
 - `GLB_PREDICTIONS_CSV` (defaults to `data/predictions/brines_with_predictions.csv`; auto-generated if missing)
 - `GLB_JOB_STORAGE_DIR` (defaults to `web/backend/jobs`)
@@ -87,7 +87,7 @@ CMD ["uvicorn", "web.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 **Env vars (Backend service)**
 ```
-GLB_MODEL_VERSION=0.2.1
+GLB_MODEL_VERSION=0.2.2
 GLB_MAE_PATH=/app/models/mae_pretrained.pth
 GLB_HEAD_PATH=/app/models/downstream_head.pth
 GLB_SCALER_PATH=/app/data/processed/feature_scaler.joblib

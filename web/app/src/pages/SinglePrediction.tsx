@@ -6,6 +6,7 @@ import PageHeader from "../components/PageHeader";
 import Loading from "../components/Loading";
 import { StatCard } from "../components/StatCard";
 import { FlaskConical, Sparkles, Waves, Info, Wand2 } from "lucide-react";
+import { useI18n } from "../lib/i18n";
 
 const fields: { key: string; label: string; placeholder?: string }[] = [
   { key: "Li_gL", label: "Li (g/L)", placeholder: "0.05" },
@@ -36,6 +37,7 @@ const exampleValues: Record<string, string> = {
 export default function SinglePrediction() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [impute, setImpute] = useState(true);
+  const { t } = useI18n();
 
   const mutation = useMutation({
     mutationFn: (payload: Record<string, number | null | boolean>) =>
@@ -63,8 +65,8 @@ export default function SinglePrediction() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Single-Point Prediction"
-        subtitle="Enter one brine sample. Missing fields can be imputed. Units: g/L for chemistry, kW/m² for light."
+        title={t("single.title")}
+        subtitle={t("single.subtitle")}
         actions={
           <label className="flex items-center gap-2 text-sm text-slate-100 pill px-3 py-2 bg-black/30">
             <input
@@ -72,7 +74,7 @@ export default function SinglePrediction() {
               checked={impute}
               onChange={(e) => setImpute(e.target.checked)}
             />
-            Impute missing chemistry
+            {t("single.impute")}
           </label>
         }
       />
@@ -89,10 +91,10 @@ export default function SinglePrediction() {
               className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white text-slate-900 font-semibold shadow-lg"
             >
               <Wand2 size={16} />
-              Fill with example
+              {t("single.example")}
             </button>
             <span className="text-slate-400">
-              Example reflects a mid-range salar sample; adjust values to your site.
+              {t("single.example.note")}
             </span>
           </div>
 
@@ -119,12 +121,12 @@ export default function SinglePrediction() {
               type="submit"
               className="px-4 py-3 rounded-full bg-gradient-to-r from-sky-400 to-fuchsia-500 text-slate-900 font-semibold shadow-lg"
             >
-              Run prediction
+              {t("single.run")}
             </button>
-            {mutation.isPending && <Loading label="Running inference…" />}
+            {mutation.isPending && <Loading label={t("single.loading")} />}
             {mutation.error && (
               <p className="text-red-300 text-sm">
-                {(mutation.error as Error).message}
+                {(mutation.error as Error).message || t("single.error")}
               </p>
             )}
           </div>
@@ -133,25 +135,25 @@ export default function SinglePrediction() {
         <div className="space-y-4">
           {!predictions ? (
             <div className="glass rounded-2xl border border-dashed border-white/20 p-6 text-slate-300">
-              Predictions will appear here.
+              {t("single.empty")}
             </div>
           ) : (
             <div className="grid sm:grid-cols-3 gap-3">
               <StatCard
-                label="Selectivity"
+                label={t("single.stat.selectivity")}
                 value={predictions.Selectivity.toFixed(3)}
-                helper="Li⁺ vs Mg²⁺"
+                helper={t("single.stat.helper")}
                 icon={<Sparkles size={20} />}
                 tone="primary"
               />
               <StatCard
-                label="Li crystallization"
+                label={t("single.stat.crystallization")}
                 value={`${predictions.Li_Crystallization_mg_m2_h.toFixed(3)} mg/m²·h`}
                 icon={<FlaskConical size={20} />}
                 tone="secondary"
               />
               <StatCard
-                label="Evaporation"
+                label={t("single.stat.evap")}
                 value={`${predictions.Evap_kg_m2_h.toFixed(3)} kg/m²·h`}
                 icon={<Waves size={20} />}
                 tone="success"
@@ -161,7 +163,7 @@ export default function SinglePrediction() {
 
           {predictions && (
             <div className="glass rounded-2xl border border-white/10 p-4">
-              <h3 className="text-lg font-semibold mb-2">Imputed chemistry</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("single.imputed")}</h3>
               <div className="grid sm:grid-cols-2 gap-2 text-sm text-slate-200">
                 {Object.entries(imputed).map(([k, v]) => (
                   <div
@@ -178,8 +180,7 @@ export default function SinglePrediction() {
               <div className="flex items-start gap-2 text-xs text-slate-300 mt-3">
                 <Info size={14} className="text-cyan-300 mt-0.5" />
                 <div>
-                  Outputs are clamped to non-negative values. Predictions are point estimates; no
-                  uncertainty bands yet. See Repro & Limits for applicability notes.
+                  {t("single.info")}
                 </div>
               </div>
             </div>

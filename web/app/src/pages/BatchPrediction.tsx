@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { startBatchJob, fetchBatchStatus, batchResultUrl } from "../lib/api";
 import PageHeader from "../components/PageHeader";
 import { CloudUpload, Download, Loader2, Info, Table as TableIcon } from "lucide-react";
+import { useI18n } from "../lib/i18n";
 
 const sampleRows = [
   { TDS_gL: 220, MLR: 4.5, Light_kW_m2: 0.22 },
@@ -15,6 +16,7 @@ export default function BatchPrediction() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useI18n();
 
   const submit = async () => {
     if (!file) return;
@@ -43,15 +45,15 @@ export default function BatchPrediction() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Batch Prediction Jobs"
-        subtitle="Upload CSV with TDS_gL, MLR, Light_kW_m2 (g/L, unitless, kW/m²). Jobs run asynchronously and return a downloadable CSV with predictions."
+        title={t("batch.title")}
+        subtitle={t("batch.subtitle")}
         actions={
           <a
             href="/examples/experimental_samples.csv"
             className="pill px-3 py-2 text-sm text-slate-100 bg-black/30"
             download
           >
-            Download sample CSV
+            {t("batch.sample")}
           </a>
         }
       />
@@ -62,10 +64,10 @@ export default function BatchPrediction() {
             <CloudUpload />
             <div className="flex-1">
               <p className="font-semibold">
-                {file ? file.name : "Choose a CSV to upload"}
+                {file ? file.name : t("batch.choose")}
               </p>
               <p className="text-sm text-slate-400">
-                Max ~200k rows. Required columns: TDS_gL, MLR, Light_kW_m2. Units must match.
+                {t("batch.hint")}
               </p>
             </div>
             <input
@@ -82,7 +84,7 @@ export default function BatchPrediction() {
               checked={impute}
               onChange={(e) => setImpute(e.target.checked)}
             />
-            Impute missing chemistry
+            {t("batch.impute")}
           </label>
 
           <button
@@ -90,13 +92,13 @@ export default function BatchPrediction() {
             disabled={!file}
             className="px-4 py-3 rounded-full bg-gradient-to-r from-sky-400 to-fuchsia-500 text-slate-900 font-semibold shadow-lg disabled:opacity-50"
           >
-            Start job
+            {t("batch.start")}
           </button>
         </div>
         <div className="grid lg:grid-cols-2 gap-3">
           <div className="bg-black/25 border border-white/10 rounded-xl p-4 text-sm text-slate-200 space-y-2">
             <div className="flex items-center gap-2 text-slate-100 font-semibold">
-              <TableIcon size={16} /> Example rows
+              <TableIcon size={16} /> {t("batch.examples")}
             </div>
             <table className="w-full text-xs">
               <thead className="text-slate-300 text-left border-b border-white/10">
@@ -116,17 +118,17 @@ export default function BatchPrediction() {
                 ))}
               </tbody>
             </table>
-            <p className="text-slate-400">Copy these values into your CSV to sanity-check format.</p>
+            <p className="text-slate-400">{t("batch.copyhint")}</p>
           </div>
           <div className="bg-black/25 border border-white/10 rounded-xl p-4 text-xs text-slate-300 space-y-2">
             <div className="flex items-center gap-2 text-slate-100 font-semibold text-sm">
-              <Info size={14} /> Quick recipe
+              <Info size={14} /> {t("batch.recipe")}
             </div>
             <ol className="list-decimal list-inside space-y-1">
-              <li>Create CSV header exactly: TDS_gL,MLR,Light_kW_m2.</li>
-              <li>Use g/L for TDS, unitless MLR, kW/m² for irradiance.</li>
-              <li>Missing values allowed; enable “Impute missing chemistry” if gaps exist.</li>
-              <li>Keep row count &lt; 200k; larger jobs split into multiple uploads.</li>
+              <li>{t("batch.step1")}</li>
+              <li>{t("batch.step2")}</li>
+              <li>{t("batch.step3")}</li>
+              <li>{t("batch.step4")}</li>
             </ol>
           </div>
         </div>
@@ -153,11 +155,11 @@ export default function BatchPrediction() {
           </div>
           {status.status === "running" || status.status === "queued" ? (
             <div className="flex items-center gap-2 text-slate-300">
-              <Loader2 className="animate-spin" size={18} /> Processing…
+              <Loader2 className="animate-spin" size={18} /> {t("batch.processing")}
             </div>
           ) : null}
           {status.status === "failed" && (
-            <p className="text-rose-300">{status.error ?? "Job failed."}</p>
+            <p className="text-rose-300">{status.error ?? t("batch.failed")}</p>
           )}
           {status.status === "completed" && (
             <a
@@ -165,14 +167,14 @@ export default function BatchPrediction() {
               className="inline-flex items-center gap-2 px-4 py-3 bg-white text-slate-900 rounded-full font-semibold"
             >
               <Download size={18} />
-              Download results
+              {t("batch.download")}
             </a>
           )}
           <p className="text-xs text-slate-400">
-            Submitted at {new Date(status.submitted_at).toLocaleString()}
+            {t("batch.submitted")} {new Date(status.submitted_at).toLocaleString()}
           </p>
           <p className="text-xs text-slate-400">
-            Outputs are point estimates; ensure downstream analyses note unit assumptions.
+            {t("batch.note")}
           </p>
         </div>
       )}
