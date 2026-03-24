@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
@@ -42,14 +42,16 @@ class JobRecord:
             id=payload["id"],
             status=payload["status"],
             input_path=Path(payload["input_path"]),
-            output_path=Path(payload["output_path"])
-            if payload.get("output_path")
-            else None,
+            output_path=(
+                Path(payload["output_path"]) if payload.get("output_path") else None
+            ),
             error=payload.get("error"),
             submitted_at=datetime.fromisoformat(payload["submitted_at"]),
-            completed_at=datetime.fromisoformat(payload["completed_at"])
-            if payload.get("completed_at")
-            else None,
+            completed_at=(
+                datetime.fromisoformat(payload["completed_at"])
+                if payload.get("completed_at")
+                else None
+            ),
         )
 
 

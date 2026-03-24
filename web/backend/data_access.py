@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
@@ -10,11 +9,16 @@ import pandas as pd
 
 from src.models.predict_brines import predict_brines
 
-from .schemas import GeoFeature, GeoResponse, DataPointProperties
+from .schemas import DataPointProperties, GeoFeature, GeoResponse
 
 
 def ensure_predictions_csv(
-    *, predictions_path: Path, processed_dir: Path, mae_path: Path, head_path: Path, scaler_path: Path
+    *,
+    predictions_path: Path,
+    processed_dir: Path,
+    mae_path: Path,
+    head_path: Path,
+    scaler_path: Path,
 ) -> Path:
     """Ensure brine predictions CSV exists; generate if missing."""
     if predictions_path.exists():
@@ -56,9 +60,11 @@ def load_geojson(predictions_path: Path) -> GeoResponse:
             brine=row.get("Brine"),
             location=row.get("Location"),
             country=row.get("Country") if "Country" in row else None,
-            Type_of_water=row.get("Type_of_water")
-            if "Type_of_water" in row
-            else row.get("Type_of_water"),
+            Type_of_water=(
+                row.get("Type_of_water")
+                if "Type_of_water" in row
+                else row.get("Type_of_water")
+            ),
             MLR=_maybe_float(row.get("MLR")),
             TDS_gL=_maybe_float(row.get("TDS_gL")),
             Light_kW_m2=_maybe_float(row.get("Light_kW_m2")),
@@ -106,4 +112,3 @@ def _maybe_float(val):
         return None if np.isnan(f) else float(f)
     except Exception:
         return None
-

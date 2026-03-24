@@ -6,6 +6,7 @@ import Loading from "../components/Loading";
 import { Compass, Cpu, Globe2, Ruler } from "lucide-react";
 import DatasetDownloads from "../components/DatasetDownloads";
 import { useI18n } from "../lib/i18n";
+import { team } from "../data/team";
 
 export default function Landing() {
   const { data: model } = useQuery({ queryKey: ["model"], queryFn: fetchModelMetadata });
@@ -17,6 +18,22 @@ export default function Landing() {
 
   return (
     <div className="space-y-10">
+      <section className="rounded-2xl border border-sky-400/30 bg-gradient-to-r from-sky-500/10 via-fuchsia-500/10 to-sky-500/10 px-6 py-4 text-center">
+        <a
+          href="https://homepage.hit.edu.cn/zhouzongyao"
+          target="_blank"
+          rel="noreferrer"
+          className="hover:opacity-80 transition-opacity"
+        >
+          <p className="text-lg md:text-xl font-bold text-white tracking-wide">
+            哈尔滨工业大学 · 周宗尧教授课题组
+          </p>
+          <p className="text-sm md:text-base text-slate-300 mt-1">
+            Zhou's Lab at Harbin Institute of Technology
+          </p>
+        </a>
+      </section>
+
       <section className="glass rounded-3xl border border-white/10 p-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-fuchsia-500/10 pointer-events-none" />
         <div className="relative grid md:grid-cols-2 gap-8 items-center">
@@ -136,6 +153,42 @@ export default function Landing() {
           </div>
         </section>
       )}
+
+      <section className="glass rounded-2xl p-6 border border-white/10">
+        <h3 className="text-xl font-semibold mb-4">{t("landing.team.title")}</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          {team.map((item) => (
+            <div key={item.org} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+              <h4 className="font-semibold text-slate-100">{item.org}</h4>
+              {item.description && (
+                <p className="text-slate-400 text-sm">{item.description}</p>
+              )}
+              <div className="flex flex-wrap gap-3">
+                {item.roles.map((r) => (
+                  <div key={r.name} className="text-sm">
+                    <span className="text-slate-300">{r.name}</span>
+                    <span className="text-slate-500 mx-1">·</span>
+                    <span className="text-slate-400">{r.title}</span>
+                    {r.url && (
+                      <>
+                        <span className="text-slate-500 mx-1">·</span>
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sky-300 underline hover:text-sky-200"
+                        >
+                          {t("landing.team.site")}
+                        </a>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

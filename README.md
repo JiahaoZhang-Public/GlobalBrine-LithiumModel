@@ -6,7 +6,7 @@ Global ML model for lithium extraction metrics from brine chemistry and irradian
 Versioning & Release
 ------------
 
-- Current version: `0.2.1`
+- Current version: `0.2.2`
 - Changelog: `CHANGELOG.md`
 - Tagging checklist: `RELEASING.md`
 
