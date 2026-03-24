@@ -37,7 +37,9 @@ class SinglePredictRequest(BaseModel):
     MLR: float | None = Field(
         default=None, description="Magnesium-to-lithium ratio (dimensionless)"
     )
-    TDS_gL: float | None = Field(default=None, description="Total dissolved solids (g/L)")
+    TDS_gL: float | None = Field(
+        default=None, description="Total dissolved solids (g/L)"
+    )
     Light_kW_m2: float | None = Field(
         default=None, description="Solar irradiance (kW/m²)"
     )
@@ -103,4 +105,3 @@ class GeoResponse(BaseModel):
     type: Literal["FeatureCollection"] = "FeatureCollection"
     features: List[GeoFeature]
     meta: Dict[str, Any]
-

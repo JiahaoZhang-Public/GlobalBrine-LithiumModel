@@ -9,6 +9,7 @@ python scripts/py/viz/figure2_map.py \
   --no-ghi
   
 """
+
 import argparse
 from pathlib import Path
 from typing import Tuple
@@ -158,7 +159,9 @@ def _load_ghi_raster(
         lat_max = min(lat_max, bounds.top)
         if lon_min >= lon_max or lat_min >= lat_max:
             raise SystemExit("Requested extent is outside the GHI raster bounds.")
-        window = from_bounds(lon_min, lat_min, lon_max, lat_max, transform=src.transform)
+        window = from_bounds(
+            lon_min, lat_min, lon_max, lat_max, transform=src.transform
+        )
         window = window.round_offsets().round_lengths()
         height = max(1, int(window.height))
         width = max(1, int(window.width))
@@ -384,9 +387,7 @@ def main() -> None:
     evap_labels = _format_range_labels(evap_bins, decimals=2)
     palette = ["#4575B4", "#91BFDB", "#E0F3F8", "#FEE090", "#FC8D59", "#D73027"]
     if str(args.evap_cmap).lower() == "custom":
-        evap_cmap = mpl.colors.LinearSegmentedColormap.from_list(
-            "evap", palette, N=256
-        )
+        evap_cmap = mpl.colors.LinearSegmentedColormap.from_list("evap", palette, N=256)
     else:
         evap_cmap = mpl.colormaps.get_cmap(args.evap_cmap)
     evap_norm = mpl.colors.Normalize(vmin=evap_bins[0], vmax=evap_bins[-1])

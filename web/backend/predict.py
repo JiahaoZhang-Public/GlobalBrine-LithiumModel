@@ -8,7 +8,11 @@ import numpy as np
 import pandas as pd
 import torch
 
-from src.constants import BRINE_FEATURE_COLUMNS, EXPERIMENTAL_FEATURE_COLUMNS, EXPERIMENTAL_TARGET_COLUMNS
+from src.constants import (
+    BRINE_FEATURE_COLUMNS,
+    EXPERIMENTAL_FEATURE_COLUMNS,
+    EXPERIMENTAL_TARGET_COLUMNS,
+)
 from src.features.scaler import (
     destandardize_preserve_nan,
     get_stats,
@@ -146,9 +150,7 @@ class Predictor:
     ) -> pd.DataFrame:
         missing = [c for c in EXPERIMENTAL_FEATURE_COLUMNS if c not in df.columns]
         if missing:
-            raise ValueError(
-                f"Input is missing required columns: {', '.join(missing)}"
-            )
+            raise ValueError(f"Input is missing required columns: {', '.join(missing)}")
 
         samples: list[dict[str, float | int | None]] = []
         for _, row in df.iterrows():
@@ -172,4 +174,3 @@ class Predictor:
         df_out["Pred_Li_Crystallization_mg_m2_h"] = preds[:, 1]
         df_out["Pred_Evap_kg_m2_h"] = preds[:, 2]
         return df_out
-

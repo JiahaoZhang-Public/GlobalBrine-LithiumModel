@@ -364,9 +364,7 @@ def main() -> None:
     cbar.set_ticks(cryst_ticks)
     cbar.set_ticklabels(cryst_labels)
     cbar.ax.tick_params(labelsize=8)
-    cbar.set_label(
-        "Li+ crystallization rate (mg m$^{-2}$ h$^{-1}$)", fontsize=9
-    )
+    cbar.set_label("Li+ crystallization rate (mg m$^{-2}$ h$^{-1}$)", fontsize=9)
 
     handles = []
     for i in range(len(sel_bins) - 1):

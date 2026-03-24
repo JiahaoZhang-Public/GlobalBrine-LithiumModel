@@ -51,9 +51,7 @@ def _sha256(path: Path) -> str:
 
 def _git_commit() -> str | None:
     try:
-        return (
-            subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
-        )
+        return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
     except Exception:
         return None
 
@@ -314,9 +312,27 @@ async def api_index(settings: Settings = Depends(get_settings_dep)) -> JSONRespo
 # without introducing redirects that break HTTPS (mixed-content) in browsers. They are hidden from
 # OpenAPI docs to avoid duplicate entries.
 app.add_api_route("/v1", api_index, methods=["GET"], include_in_schema=False)
-app.add_api_route("/v1/model", model_metadata, methods=["GET"], response_model=ModelMetadata, include_in_schema=False)
-app.add_api_route("/v1/data/points", data_points, methods=["GET"], response_model=GeoResponse, include_in_schema=False)
-app.add_api_route("/v1/predict", predict_single, methods=["POST"], response_model=SinglePredictResponse, include_in_schema=False)
+app.add_api_route(
+    "/v1/model",
+    model_metadata,
+    methods=["GET"],
+    response_model=ModelMetadata,
+    include_in_schema=False,
+)
+app.add_api_route(
+    "/v1/data/points",
+    data_points,
+    methods=["GET"],
+    response_model=GeoResponse,
+    include_in_schema=False,
+)
+app.add_api_route(
+    "/v1/predict",
+    predict_single,
+    methods=["POST"],
+    response_model=SinglePredictResponse,
+    include_in_schema=False,
+)
 app.add_api_route(
     "/v1/predict/batch",
     predict_batch,
