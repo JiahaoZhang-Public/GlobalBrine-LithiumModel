@@ -20,6 +20,19 @@ def processed_data_dir() -> Path:
     return data_dir() / "processed"
 
 
+ION_COLUMNS: tuple[str, ...] = (
+    "Li_gL",
+    "Mg_gL",
+    "Na_gL",
+    "K_gL",
+    "Ca_gL",
+    "SO4_gL",
+    "Cl_gL",
+)
+
+TDS_MAX_GL: float = 450.0
+TDS_UNIT_RATIO_THRESHOLD: float = 50.0
+
 BRINE_CHEMISTRY_COLUMNS: tuple[str, ...] = (
     "Li_gL",
     "Mg_gL",

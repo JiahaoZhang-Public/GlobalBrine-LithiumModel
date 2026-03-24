@@ -18,7 +18,13 @@ except ModuleNotFoundError:  # pragma: no cover
 
 
 try:
-    from src.constants import BRINES_DATASET, EXPERIMENTAL_DATASET
+    from src.constants import (
+        BRINES_DATASET,
+        EXPERIMENTAL_DATASET,
+        ION_COLUMNS,
+        TDS_MAX_GL,
+        TDS_UNIT_RATIO_THRESHOLD,
+    )
     from src.data.datasets import (
         CsvDataset,
         normalize_rows_to_columns,
@@ -34,7 +40,13 @@ except ModuleNotFoundError:  # pragma: no cover
     import sys
 
     sys.path.append(str(Path(__file__).resolve().parents[2]))
-    from src.constants import BRINES_DATASET, EXPERIMENTAL_DATASET
+    from src.constants import (
+        BRINES_DATASET,
+        EXPERIMENTAL_DATASET,
+        ION_COLUMNS,
+        TDS_MAX_GL,
+        TDS_UNIT_RATIO_THRESHOLD,
+    )
     from src.data.datasets import (
         CsvDataset,
         normalize_rows_to_columns,
@@ -46,6 +58,63 @@ except ModuleNotFoundError:  # pragma: no cover
     )
     from src.data.light import GeoTiffSampler
     from src.data.location import location_to_lat_lon
+
+
+def _sanitize_tds(
+    rows: list[dict[str, str]],
+    logger: logging.Logger | None = None,
+) -> int:
+    """Fix TDS_gL unit errors in-place and clip to physical maximum.
+
+    Returns the number of rows modified.
+    """
+    fixed = 0
+    for row in rows:
+        tds_str = (row.get("TDS_gL") or "").strip()
+        if tds_str == "" or tds_str.lower() == "nan":
+            continue
+
+        try:
+            tds = float(tds_str)
+        except ValueError:
+            continue
+
+        ion_sum = 0.0
+        ion_count = 0
+        for col in ION_COLUMNS:
+            val_str = (row.get(col) or "").strip()
+            if val_str == "" or val_str.lower() == "nan":
+                continue
+            try:
+                ion_sum += float(val_str)
+                ion_count += 1
+            except ValueError:
+                continue
+
+        original_tds = tds
+
+        # Detect mg/L -> g/L unit error.
+        if ion_sum > 0.1 and tds / ion_sum > TDS_UNIT_RATIO_THRESHOLD:
+            tds = tds / 1000.0
+
+        # Hard physical ceiling.
+        if tds > TDS_MAX_GL:
+            tds = TDS_MAX_GL
+
+        if tds != original_tds:
+            row["TDS_gL"] = f"{tds:.6g}"
+            fixed += 1
+            if logger is not None:
+                logger.debug(
+                    "TDS_gL fixed: %.4g -> %.4g (ion_sum=%.4g)",
+                    original_tds,
+                    tds,
+                    ion_sum,
+                )
+
+    if logger is not None and fixed > 0:
+        logger.info("Sanitized TDS_gL for %d rows", fixed)
+    return fixed
 
 
 def process_brines_dataset_with_lat_lon(
@@ -127,6 +196,8 @@ def process_brines_dataset_with_lat_lon(
         columns.append("Longitude")
     if "Light_kW_m2" not in columns:
         columns.append("Light_kW_m2")
+
+    _sanitize_tds(rows, logger=logging.getLogger(__name__))
 
     normalized = normalize_rows_to_columns(rows, columns)
     write_csv_rows(output_path, normalized, columns)
