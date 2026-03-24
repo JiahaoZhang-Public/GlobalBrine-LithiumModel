@@ -12,6 +12,7 @@ from src.constants import (
     BRINE_FEATURE_COLUMNS,
     EXPERIMENTAL_FEATURE_COLUMNS,
     EXPERIMENTAL_TARGET_COLUMNS,
+    TDS_MAX_GL,
 )
 from src.features.scaler import (
     destandardize_preserve_nan,
@@ -147,6 +148,13 @@ def mae_impute_brine_features(
     imputed_std = np.where(missing, pred_std, x_std) if preserve_observed else pred_std
     imputed_raw = destandardize_preserve_nan(imputed_std, mean, std)
     imputed_raw = np.clip(imputed_raw, 0.0, None)
+
+    # Enforce physical upper bound on TDS_gL.
+    tds_idx = list(BRINE_FEATURE_COLUMNS).index("TDS_gL")
+    imputed_raw[:, tds_idx] = np.clip(imputed_raw[:, tds_idx], 0.0, TDS_MAX_GL)
+    # Re-standardize the clipped column so imputed_std stays consistent.
+    imputed_std[:, tds_idx] = (imputed_raw[:, tds_idx] - mean[tds_idx]) / std[tds_idx]
+
     return imputed_raw, imputed_std
 
 
