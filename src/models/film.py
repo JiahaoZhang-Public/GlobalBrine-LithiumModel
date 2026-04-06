@@ -13,6 +13,7 @@ allowing Light to influence downstream predictions.
 Reference: Perez et al., "FiLM: Visual Reasoning with a General Conditioning
 Layer", AAAI 2018.
 """
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass

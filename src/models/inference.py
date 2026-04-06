@@ -229,9 +229,9 @@ def predict_labels(
     x_exp_std[:, tds_idx] = (x_exp_std[:, tds_idx] - br_mean[br_tds]) / br_std[br_tds]
     x_exp_std[:, mlr_idx] = (x_exp_std[:, mlr_idx] - br_mean[br_mlr]) / br_std[br_mlr]
     # Light uses experimental scaler stats (not brine).
-    x_exp_std[:, light_idx] = (
-        (x_exp_std[:, light_idx] - exp_mean[light_idx]) / exp_std[light_idx]
-    )
+    x_exp_std[:, light_idx] = (x_exp_std[:, light_idx] - exp_mean[light_idx]) / exp_std[
+        light_idx
+    ]
 
     # Build chemistry vector for MAE encoder (no Light).
     chem_std = np.full(
@@ -277,9 +277,7 @@ def predict_labels(
                 f"Unexpected regression head input dim={head_in_dim}; "
                 f"expected {int(z.shape[1])} or {int(z.shape[1]) + 1}."
             )
-        y_std_pred = (
-            artifacts.head(head_in).detach().cpu().numpy().astype(np.float32)
-        )
+        y_std_pred = artifacts.head(head_in).detach().cpu().numpy().astype(np.float32)
 
     y_pred = y_std_pred * y_std + y_mean
     y_pred = np.clip(y_pred, 0.0, None)
