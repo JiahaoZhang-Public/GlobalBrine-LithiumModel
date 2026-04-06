@@ -12,7 +12,6 @@ from src.constants import (
     BRINE_FEATURE_COLUMNS,
     EXPERIMENTAL_FEATURE_COLUMNS,
     EXPERIMENTAL_TARGET_COLUMNS,
-    LIGHT_COLUMN,
     TDS_MAX_GL,
 )
 from src.features.scaler import (
