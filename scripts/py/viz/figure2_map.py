@@ -451,7 +451,6 @@ def main() -> None:
     )
 
     ax.add_feature(cfeature.COASTLINE, linewidth=0.4, edgecolor="0.5", zorder=3)
-    ax.add_feature(cfeature.BORDERS, linewidth=0.35, edgecolor="0.6", zorder=3)
 
     gl = ax.gridlines(
         draw_labels=True, linewidth=0.3, color="0.6", alpha=0.6, linestyle="--"

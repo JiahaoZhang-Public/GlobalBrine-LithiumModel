@@ -73,7 +73,7 @@ export default function Landing() {
               <div>
                 <p className="text-lg font-semibold">Ready for field and bench</p>
                 <p className="text-slate-300 text-sm">
-                  Works with partial chemistry, returns selectivity, crystallization, and evaporation with units.
+                  Works with partial chemistry, returns selectivity, lithium flux, and evaporation with units.
                 </p>
               </div>
             </div>
