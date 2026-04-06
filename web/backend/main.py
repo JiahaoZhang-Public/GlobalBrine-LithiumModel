@@ -128,7 +128,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="GlobalBrine-LithiumModel API",
-    version="0.1.0",
+    version="0.3.0",
     description="FastAPI service for GlobalBrine lithium predictions.",
     lifespan=lifespan,
 )
