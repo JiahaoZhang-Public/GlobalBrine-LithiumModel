@@ -10,9 +10,15 @@ import numpy as np
 import torch
 
 try:
-    from src.constants import BRINE_FEATURE_COLUMNS, EXPERIMENTAL_TARGET_COLUMNS
+    from src.constants import (
+        BRINE_FEATURE_COLUMNS,
+        EXPERIMENTAL_FEATURE_COLUMNS,
+        EXPERIMENTAL_TARGET_COLUMNS,
+        LIGHT_COLUMN,
+    )
     from src.data.datasets import read_csv_rows, write_csv_rows
     from src.features.scaler import get_stats, load_scaler
+    from src.models.film import FiLMRegressionHead
     from src.models.inference import (
         auto_device,
         load_head,
@@ -23,9 +29,15 @@ except ModuleNotFoundError:  # pragma: no cover
     import sys
 
     sys.path.append(str(Path(__file__).resolve().parents[2]))
-    from src.constants import BRINE_FEATURE_COLUMNS, EXPERIMENTAL_TARGET_COLUMNS
+    from src.constants import (
+        BRINE_FEATURE_COLUMNS,
+        EXPERIMENTAL_FEATURE_COLUMNS,
+        EXPERIMENTAL_TARGET_COLUMNS,
+        LIGHT_COLUMN,
+    )
     from src.data.datasets import read_csv_rows, write_csv_rows
     from src.features.scaler import get_stats, load_scaler
+    from src.models.film import FiLMRegressionHead
     from src.models.inference import (
         auto_device,
         load_head,
@@ -100,6 +112,7 @@ def predict_brines(
     )
 
     rows, header = read_csv_rows(brines_csv)
+    # Chemistry features (9 columns, no Light).
     missing_cols = [c for c in BRINE_FEATURE_COLUMNS if c not in set(header)]
     if missing_cols:
         raise PredictionError(
@@ -111,6 +124,11 @@ def predict_brines(
         for j, col in enumerate(BRINE_FEATURE_COLUMNS):
             x_raw[i, j] = _parse_float(row.get(col, ""))
 
+    # Extract Light separately for FiLM conditioning.
+    light_raw = np.zeros((len(rows), 1), dtype=np.float32)
+    for i, row in enumerate(rows):
+        light_raw[i, 0] = _parse_float(row.get(LIGHT_COLUMN, ""))
+
     imputed_raw, imputed_std = mae_impute_brine_features(
         mae,
         brine_raw=x_raw,
@@ -119,7 +137,7 @@ def predict_brines(
         device=torch_device,
     )
 
-    # Write imputed brines CSV (same columns as processed brines.csv).
+    # Write imputed brines CSV (chemistry columns only).
     imputed_rows: list[dict[str, str]] = []
     for i, row in enumerate(rows):
         out_row = dict(row)
@@ -138,24 +156,52 @@ def predict_brines(
 
     dev = torch_device or next(mae.parameters()).device
     z = mae.encode(torch.from_numpy(imputed_std).to(device=dev, dtype=torch.float32))
-    head_dim = _head_in_dim(head)
 
-    if head_dim == int(z.shape[1]):
-        head_in = z
-    elif head_dim == int(z.shape[1]) + 1:
-        light_idx = list(BRINE_FEATURE_COLUMNS).index("Light_kW_m2")
-        light = torch.from_numpy(imputed_std[:, light_idx : light_idx + 1]).to(
-            device=dev, dtype=torch.float32
+    if isinstance(head, FiLMRegressionHead):
+        # Standardize light using experimental scaler.
+        exp_mean, exp_std_vals = get_stats(
+            scaler,
+            key="experimental_features",
+            feature_names=EXPERIMENTAL_FEATURE_COLUMNS,
         )
-        head_in = torch.cat([z, light], dim=1)
+        light_exp_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index(LIGHT_COLUMN)
+        # Handle NaN light: use mean (0 in standardized space).
+        light_std = light_raw.copy()
+        nan_mask = np.isnan(light_std)
+        light_std = (light_std - exp_mean[light_exp_idx]) / exp_std_vals[light_exp_idx]
+        light_std[nan_mask] = 0.0  # mean-fill missing light
+
+        light_t = torch.from_numpy(light_std).to(device=dev, dtype=torch.float32)
+        with torch.no_grad():
+            y_std_pred = head(z, light_t).detach().cpu().numpy().astype(np.float32)
     else:
-        raise PredictionError(
-            f"Unexpected regression head input dim={head_dim}; "
-            f"expected {int(z.shape[1])} or {int(z.shape[1]) + 1}."
-        )
-
-    with torch.no_grad():
-        y_std_pred = head(head_in).detach().cpu().numpy().astype(np.float32)
+        # Legacy path.
+        head_dim = _head_in_dim(head)
+        if head_dim == int(z.shape[1]):
+            head_in = z
+        elif head_dim == int(z.shape[1]) + 1:
+            # Legacy: concat light (standardized with brine scaler).
+            br_mean, br_std_vals = get_stats(
+                scaler, key="brine_features", feature_names=BRINE_FEATURE_COLUMNS
+            )
+            # Light was in brine features in legacy — find it if present.
+            if LIGHT_COLUMN in list(BRINE_FEATURE_COLUMNS):
+                light_idx = list(BRINE_FEATURE_COLUMNS).index(LIGHT_COLUMN)
+                light_concat = torch.from_numpy(
+                    imputed_std[:, light_idx : light_idx + 1]
+                ).to(device=dev, dtype=torch.float32)
+            else:
+                light_concat = torch.zeros(
+                    (z.shape[0], 1), device=dev, dtype=torch.float32
+                )
+            head_in = torch.cat([z, light_concat], dim=1)
+        else:
+            raise PredictionError(
+                f"Unexpected regression head input dim={head_dim}; "
+                f"expected {int(z.shape[1])} or {int(z.shape[1]) + 1}."
+            )
+        with torch.no_grad():
+            y_std_pred = head(head_in).detach().cpu().numpy().astype(np.float32)
 
     y_pred = (y_std_pred * y_std + y_mean).astype(np.float32)
     y_pred = np.clip(y_pred, 0.0, None)

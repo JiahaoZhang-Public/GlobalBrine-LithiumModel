@@ -9,23 +9,26 @@ class TestInferenceClamp(unittest.TestCase):
     def test_predict_labels_clamps_to_non_negative(self):
         import torch
 
+        from src.models.film import FiLMConfig, FiLMRegressionHead
         from src.models.inference import InferenceArtifacts, predict_labels
         from src.models.mae import TabularMAE, TabularMAEConfig
-        from src.models.regression_head import RegressionHead, RegressionHeadConfig
+        from src.models.regression_head import RegressionHeadConfig
 
         mae = TabularMAE(
             num_features=len(BRINE_FEATURE_COLUMNS),
             config=TabularMAEConfig(d_model=8, n_heads=4, n_layers=1),
         )
-        head = RegressionHead(
+        film_head = FiLMRegressionHead(
             in_dim=mae.config.d_model,
-            config=RegressionHeadConfig(hidden_dim=8, n_layers=1, out_dim=3),
+            head_config=RegressionHeadConfig(hidden_dim=8, n_layers=1, out_dim=3),
+            film_config=FiLMConfig(cond_dim=1, latent_dim=8),
         )
-        head.eval()
+        film_head.eval()
+        # Force negative output by setting head bias to -1.
         with torch.no_grad():
-            for p in head.parameters():
+            for p in film_head.head.parameters():
                 p.zero_()
-            head.net[-1].bias[:] = -1.0
+            film_head.head.net[-1].bias[:] = -1.0
 
         scaler = {
             "brine_features": {
@@ -48,7 +51,7 @@ class TestInferenceClamp(unittest.TestCase):
                 "std": [1.0, 1.0, 1.0],
             },
         }
-        artifacts = InferenceArtifacts(mae=mae, head=head, scaler=scaler)
+        artifacts = InferenceArtifacts(mae=mae, head=film_head, scaler=scaler)
 
         samples = [{"TDS_gL": 1.0, "MLR": 2.0, "Light_kW_m2": 3.0}]
         y = predict_labels(artifacts, samples=samples, impute_missing_chemistry=False)

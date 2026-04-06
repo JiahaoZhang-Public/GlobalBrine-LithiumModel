@@ -293,7 +293,7 @@ def run_regression_evaluation() -> dict:
     # --- 2a. Leave-One-Out CV ---
     print(f"\n[2a] Leave-One-Out CV ({n_samples} folds)...")
     finetune_cfg = FinetuneConfig(
-        epochs=200, batch_size=16, lr=1e-3, device="cpu", seed=42
+        epochs=200, batch_size=16, lr=1e-3, device=str(DEVICE), seed=42
     )
 
     loo_preds_std = np.zeros_like(y_exp)
@@ -311,7 +311,7 @@ def run_regression_evaluation() -> dict:
         encoder = build_encoder_from_checkpoint(ckpt)
         encoder.to(DEVICE)
 
-        head = finetune_regression_head(
+        film_head = finetune_regression_head(
             x_train,
             y_train,
             encoder,
@@ -319,12 +319,10 @@ def run_regression_evaluation() -> dict:
             freeze_encoder=True,
             mae_feature_names=mae_feature_names,
         )
-        head.to(DEVICE)
+        film_head.to(DEVICE)
 
-        # Forward pass for held-out sample
+        # Forward pass for held-out sample (FiLM: Light conditions the head).
         encoder_features = list(mae_feature_names)
-        light_in_encoder = "Light_kW_m2" in encoder_features
-        concat_light = not light_in_encoder
 
         tds_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("TDS_gL")
         mlr_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("MLR")
@@ -338,16 +336,11 @@ def run_regression_evaluation() -> dict:
             chem[0, encoder_features.index("TDS_gL")] = x_t[0, tds_idx]
         if "MLR" in encoder_features:
             chem[0, encoder_features.index("MLR")] = x_t[0, mlr_idx]
-        if "Light_kW_m2" in encoder_features:
-            chem[0, encoder_features.index("Light_kW_m2")] = x_t[0, light_idx]
 
         with torch.no_grad():
             z = encoder.encode(chem)
-            if concat_light:
-                light = x_t[:, light_idx : light_idx + 1]
-                pred = head(torch.cat([z, light], dim=1))
-            else:
-                pred = head(z)
+            light = x_t[:, light_idx : light_idx + 1]
+            pred = film_head(z, light)
             loo_preds_std[i] = pred.cpu().numpy().flatten()
 
     # De-normalize

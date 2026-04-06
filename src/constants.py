@@ -45,7 +45,11 @@ BRINE_CHEMISTRY_COLUMNS: tuple[str, ...] = (
     "TDS_gL",
 )
 
-BRINE_FEATURE_COLUMNS: tuple[str, ...] = BRINE_CHEMISTRY_COLUMNS + ("Light_kW_m2",)
+# v0.3.0: Light_kW_m2 removed from brine features — it enters via FiLM
+# conditioning in the regression head, not the MAE encoder.
+BRINE_FEATURE_COLUMNS: tuple[str, ...] = BRINE_CHEMISTRY_COLUMNS
+
+LIGHT_COLUMN: str = "Light_kW_m2"
 
 EXPERIMENTAL_FEATURE_COLUMNS: tuple[str, ...] = (
     "TDS_gL",

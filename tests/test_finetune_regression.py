@@ -16,6 +16,7 @@ except ModuleNotFoundError:  # pragma: no cover
 class TestFinetuneRegression(unittest.TestCase):
     def test_finetune_runs_with_current_feature_shapes(self):
         from src.constants import BRINE_FEATURE_COLUMNS
+        from src.models.film import FiLMConfig, FiLMRegressionHead
         from src.models.finetune_regression import (
             FinetuneConfig,
             finetune_regression_head,
@@ -27,6 +28,7 @@ class TestFinetuneRegression(unittest.TestCase):
             num_features=len(BRINE_FEATURE_COLUMNS),
             config=TabularMAEConfig(d_model=16, n_heads=4, n_layers=1),
         )
+        # x_exp has 3 columns: [TDS_gL, MLR, Light_kW_m2]
         x_exp = np.array(
             [
                 [0.0, 0.0, 0.0],
@@ -36,16 +38,17 @@ class TestFinetuneRegression(unittest.TestCase):
         )
         y_exp = np.zeros((2, 3), dtype=np.float32)
 
-        head = finetune_regression_head(
+        film_head = finetune_regression_head(
             x_exp,
             y_exp,
             encoder,
             head_config=RegressionHeadConfig(hidden_dim=8, n_layers=1, out_dim=3),
+            film_config=FiLMConfig(cond_dim=1, latent_dim=16),
             finetune_config=FinetuneConfig(epochs=1, batch_size=2, device="cpu"),
             freeze_encoder=True,
             mae_feature_names=list(BRINE_FEATURE_COLUMNS),
         )
-        self.assertIsNotNone(head)
+        self.assertIsInstance(film_head, FiLMRegressionHead)
 
 
 if __name__ == "__main__":
