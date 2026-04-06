@@ -97,12 +97,11 @@ def integrated_gradients_for_prediction(
     br_cols = list(BRINE_FEATURE_COLUMNS)
     br_tds = br_cols.index("TDS_gL")
     br_mlr = br_cols.index("MLR")
-    br_light = br_cols.index("Light_kW_m2")
 
     default_baseline = {
         "TDS_gL": float(br_mean[br_tds]),
         "MLR": float(br_mean[br_mlr]),
-        "Light_kW_m2": float(br_mean[br_light]),
+        "Light_kW_m2": float(exp_mean[light_idx]),
     }
     baseline_dict = dict(default_baseline)
     if baseline is not None:
@@ -133,7 +132,6 @@ def integrated_gradients_for_prediction(
 
         tds_std = (tds - br_mean_t[br_tds]) / br_std_t[br_tds]
         mlr_std = (mlr - br_mean_t[br_mlr]) / br_std_t[br_mlr]
-        light_std_br = (light - br_mean_t[br_light]) / br_std_t[br_light]
         light_std_exp = (light - exp_mean_t[light_idx]) / exp_std_t[light_idx]
 
         chem = torch.full(
@@ -144,21 +142,28 @@ def integrated_gradients_for_prediction(
         )
         chem[:, br_tds] = tds_std
         chem[:, br_mlr] = mlr_std
-        chem[:, br_light] = light_std_br
 
         z = artifacts.mae.encode(chem)
-        in_dim = _head_in_dim(artifacts.head)
-        if in_dim == int(z.shape[1]):
-            y_std_pred = artifacts.head(z)
-        elif in_dim == int(z.shape[1]) + 1:
-            y_std_pred = artifacts.head(
-                torch.cat([z, light_std_exp.unsqueeze(1)], dim=1)
-            )
+
+        # FiLM head (v0.3.0): pass z and light condition separately.
+        from src.models.film import FiLMRegressionHead
+
+        if isinstance(artifacts.head, FiLMRegressionHead):
+            y_std_pred = artifacts.head(z, light_std_exp.unsqueeze(1))
         else:
-            raise ValueError(
-                f"Unexpected head input dim={in_dim}; expected {int(z.shape[1])} "
-                f"or {int(z.shape[1]) + 1}."
-            )
+            # Legacy heads: z-only or concat-light.
+            in_dim = _head_in_dim(artifacts.head)
+            if in_dim == int(z.shape[1]):
+                y_std_pred = artifacts.head(z)
+            elif in_dim == int(z.shape[1]) + 1:
+                y_std_pred = artifacts.head(
+                    torch.cat([z, light_std_exp.unsqueeze(1)], dim=1)
+                )
+            else:
+                raise ValueError(
+                    f"Unexpected head input dim={in_dim}; expected "
+                    f"{int(z.shape[1])} or {int(z.shape[1]) + 1}."
+                )
         y_raw_pred = y_std_pred * y_std_t + y_mean_t
         return y_raw_pred
 

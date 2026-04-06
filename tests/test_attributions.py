@@ -22,7 +22,7 @@ class TestAttributions(unittest.TestCase):
         )
 
         return {
-            "brine_chemistry": {
+            "brine_features": {
                 "feature_names": list(BRINE_FEATURE_COLUMNS),
                 "mean": [0.0] * len(BRINE_FEATURE_COLUMNS),
                 "std": [1.0] * len(BRINE_FEATURE_COLUMNS),
@@ -38,6 +38,33 @@ class TestAttributions(unittest.TestCase):
                 "std": [1.0] * len(EXPERIMENTAL_TARGET_COLUMNS),
             },
         }
+
+    def test_integrated_gradients_for_prediction_runs_with_film_head(self):
+        from src.constants import BRINE_FEATURE_COLUMNS
+        from src.interpretability.attributions import (
+            integrated_gradients_for_prediction,
+        )
+        from src.models.film import FiLMConfig, FiLMRegressionHead
+        from src.models.inference import InferenceArtifacts
+        from src.models.mae import TabularMAE, TabularMAEConfig
+        from src.models.regression_head import RegressionHeadConfig
+
+        mae = TabularMAE(
+            num_features=len(BRINE_FEATURE_COLUMNS),
+            config=TabularMAEConfig(d_model=8, n_heads=4, n_layers=1),
+        )
+        head = FiLMRegressionHead(
+            in_dim=mae.config.d_model,
+            head_config=RegressionHeadConfig(hidden_dim=8, n_layers=1, out_dim=3),
+            film_config=FiLMConfig(cond_dim=1, latent_dim=8),
+        )
+        artifacts = InferenceArtifacts(mae=mae, head=head, scaler=self._make_scaler())
+
+        sample = {"TDS_gL": 1.0, "MLR": 2.0, "Light_kW_m2": 3.0}
+        res = integrated_gradients_for_prediction(artifacts, sample=sample, steps=4)
+        self.assertEqual(set(res.features), {"TDS_gL", "MLR", "Light_kW_m2"})
+        self.assertEqual(len(res.targets), 3)
+        self.assertTrue(all(np.isfinite(list(res.deltas.values()))))
 
     def test_integrated_gradients_for_prediction_runs_with_z_only_head(self):
         from src.constants import BRINE_FEATURE_COLUMNS
