@@ -54,9 +54,7 @@ class TestInferenceClamp(unittest.TestCase):
         y = predict_labels(artifacts, samples=samples, impute_missing_chemistry=False)
         self.assertTrue(np.all(y >= 0.0))
 
-
     def test_mae_impute_clips_tds_to_physical_max(self):
-        import torch
 
         from src.constants import TDS_MAX_GL
         from src.models.inference import mae_impute_brine_features

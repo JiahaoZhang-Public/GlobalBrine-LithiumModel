@@ -49,8 +49,18 @@ class TestSanitizeTds(unittest.TestCase):
     def test_unit_error_divided_by_1000(self):
         from src.data.make_dataset import _sanitize_tds
 
-        rows = [{"Li_gL": "0.05", "Mg_gL": "1.0", "Na_gL": "3.0", "K_gL": "0.5",
-                 "Ca_gL": "0.3", "SO4_gL": "0.1", "Cl_gL": "6.0", "TDS_gL": "11000"}]
+        rows = [
+            {
+                "Li_gL": "0.05",
+                "Mg_gL": "1.0",
+                "Na_gL": "3.0",
+                "K_gL": "0.5",
+                "Ca_gL": "0.3",
+                "SO4_gL": "0.1",
+                "Cl_gL": "6.0",
+                "TDS_gL": "11000",
+            }
+        ]
         # ion_sum ~= 10.95, TDS/ion_sum ~= 1004 -> unit error
         fixed = _sanitize_tds(rows)
         self.assertEqual(fixed, 1)
@@ -59,8 +69,18 @@ class TestSanitizeTds(unittest.TestCase):
     def test_normal_tds_unchanged(self):
         from src.data.make_dataset import _sanitize_tds
 
-        rows = [{"Li_gL": "0.05", "Mg_gL": "30.0", "Na_gL": "20.0", "K_gL": "7.0",
-                 "Ca_gL": "12.0", "SO4_gL": "0.6", "Cl_gL": "150.0", "TDS_gL": "225.0"}]
+        rows = [
+            {
+                "Li_gL": "0.05",
+                "Mg_gL": "30.0",
+                "Na_gL": "20.0",
+                "K_gL": "7.0",
+                "Ca_gL": "12.0",
+                "SO4_gL": "0.6",
+                "Cl_gL": "150.0",
+                "TDS_gL": "225.0",
+            }
+        ]
         fixed = _sanitize_tds(rows)
         self.assertEqual(fixed, 0)
         self.assertAlmostEqual(float(rows[0]["TDS_gL"]), 225.0, places=1)
