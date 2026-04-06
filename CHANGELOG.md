@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-06
+
+### Added
+
+- FiLM (Feature-wise Linear Modulation) conditioning layer (`src/models/film.py`): Light_kW_m2 now modulates the latent representation via learned affine transforms (z_film = gamma * z + beta) instead of being concatenated or fed into the MAE encoder.
+- Identity initialization for FiLM layer ensures stable training from the start (gamma=1, beta=0 at init).
+- `mae_impute_brine_features()` in inference pipeline for MAE-based chemistry imputation with TDS physical clamp.
+
+### Changed
+
+- **Breaking**: MAE encoder now receives 9 brine chemistry features only (Light_kW_m2 removed from `BRINE_FEATURE_COLUMNS`). Light enters via FiLM conditioning in the regression head.
+- Regression head upgraded from `RegressionHead` to `FiLMRegressionHead`; checkpoint format includes `use_film` flag for backward compatibility with legacy models.
+- Experimental scaler: Light_kW_m2 statistics always computed from experimental data (not brine data) to fix distribution mismatch between lab irradiance and geographic GHI.
+- Updated model checkpoints (`mae_pretrained.pth`, `downstream_head.pth`) for v0.3.0 architecture.
+
+### Removed
+
+- Dead code: `sample_feature_mask()` from `mae.py`, empty `src/visualization/visualize.py`, obsolete `tox.ini`.
+- `concat_light` logic from finetune and inference pipelines (replaced by FiLM).
+
 ## [0.2.2] - 2026-02-02
 
 ### Added

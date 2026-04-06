@@ -45,9 +45,9 @@ class TestBuildFeatures(unittest.TestCase):
                 processed / BRINES_DATASET.filename,
                 header=list(BRINE_FEATURE_COLUMNS),
                 rows=[
-                    [1, 2, 3, 4, 5, 6, 7, 8, 9, 100],
-                    [2, 3, 4, 5, 6, 7, 8, 9, 10, 200],
-                    [3, 4, 5, 6, 7, 8, 9, 10, 11, 300],
+                    [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                    [2, 3, 4, 5, 6, 7, 8, 9, 10],
+                    [3, 4, 5, 6, 7, 8, 9, 10, 11],
                 ],
             )
 
@@ -77,11 +77,14 @@ class TestBuildFeatures(unittest.TestCase):
             self.assertIn("experimental_features", scaler)
             self.assertIn("experimental_targets", scaler)
 
-            # Experimental scaling: TDS/MLR/Light use brines-derived scaling.
+            # Experimental scaling: TDS/MLR use brine stats, Light uses exp stats.
+            # TDS brine vals=[9,10,11], mean=10, std=0.8165 -> (9-10)/0.8165=-1.2247
+            # MLR brine vals=[8,9,10], mean=9, std=0.8165 -> (8-9)/0.8165=-1.2247
+            # Light exp vals=[100,200], mean=150, std=50 -> (100-150)/50=-1.0
             self.assertTrue(
                 np.allclose(
                     x_exp[0],
-                    [-1.2247449, -1.2247449, -1.2247449],
+                    [-1.2247449, -1.2247449, -1.0],
                     atol=1e-5,
                 )
             )
@@ -98,8 +101,8 @@ class TestBuildFeatures(unittest.TestCase):
             header = list(BRINE_FEATURE_COLUMNS)
 
             # First row has missing Cl_gL (blank string).
-            row1 = [1, 2, 3, 4, 5, 6, "", 8, 9, 100]
-            row2 = [2, 3, 4, 5, 6, 7, 8, 9, 10, 200]
+            row1 = [1, 2, 3, 4, 5, 6, "", 8, 9]
+            row2 = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 
             self._write_csv(
                 processed / BRINES_DATASET.filename,
@@ -127,42 +130,12 @@ class TestBuildFeatures(unittest.TestCase):
             self.assertTrue(np.isnan(x_lake[0, cl_idx]))
             self.assertTrue(np.isfinite(x_lake[~np.isnan(x_lake)]).all())
 
-    def test_light_is_required_for_brines_features(self):
-        from src.constants import BRINE_FEATURE_COLUMNS, BRINES_DATASET
-        from src.features.build_features import (
-            FeatureBuildError,
-            build_and_save_features,
-        )
+    def test_brine_features_have_no_light(self):
+        """v0.3.0: Light_kW_m2 is no longer part of BRINE_FEATURE_COLUMNS."""
+        from src.constants import BRINE_FEATURE_COLUMNS
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            processed = Path(tmpdir) / "processed"
-
-            # Light_kW_m2 exists but is entirely missing -> should raise.
-            self._write_csv(
-                processed / BRINES_DATASET.filename,
-                header=list(BRINE_FEATURE_COLUMNS),
-                rows=[
-                    [1, 2, 3, 4, 5, 6, 7, 8, 9, ""],
-                    [2, 3, 4, 5, 6, 7, 8, 9, 10, ""],
-                ],
-            )
-
-            # Minimal experimental.csv needed for the function to run.
-            self._write_csv(
-                processed / "experimental.csv",
-                header=[
-                    "TDS_gL",
-                    "MLR",
-                    "Light_kW_m2",
-                    "Selectivity",
-                    "Li_Crystallization_mg_m2_h",
-                    "Evap_kg_m2_h",
-                ],
-                rows=[[9, 8, 100, 0.1, 1.0, 2.0]],
-            )
-
-            with self.assertRaises(FeatureBuildError):
-                build_and_save_features(processed)
+        self.assertNotIn("Light_kW_m2", BRINE_FEATURE_COLUMNS)
+        self.assertEqual(len(BRINE_FEATURE_COLUMNS), 9)
 
 
 if __name__ == "__main__":

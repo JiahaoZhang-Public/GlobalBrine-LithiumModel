@@ -10,16 +10,15 @@ Generated automatically by `evaluations/run_evaluation.py`
 
 | Feature | MSE (normalized) | Observed Samples |
 |---------|-----------------|------------------|
-| Li_gL | 0.801330 | 946 |
-| Mg_gL | 0.914963 | 946 |
-| Na_gL | 0.763745 | 939 |
-| K_gL | 0.891867 | 938 |
-| Ca_gL | 0.976304 | 937 |
-| SO4_gL | 0.910154 | 889 |
-| Cl_gL | 0.726605 | 899 |
-| MLR | 1.105677 | 946 |
-| TDS_gL | 0.661449 | 656 |
-| Light_kW_m2 | 1.216247 | 937 |
+| Li_gL | 0.799381 | 946 |
+| Mg_gL | 0.930898 | 946 |
+| Na_gL | 0.557574 | 939 |
+| K_gL | 0.929127 | 938 |
+| Ca_gL | 0.970847 | 937 |
+| SO4_gL | 0.906118 | 889 |
+| Cl_gL | 0.545792 | 899 |
+| MLR | 1.196074 | 946 |
+| TDS_gL | 0.464199 | 656 |
 
 ![Per-Feature Reconstruction](mae_pretrain/per_feature_reconstruction.png)
 
@@ -70,16 +69,11 @@ Generated automatically by `evaluations/run_evaluation.py`
 ![TDS_gL](mae_pretrain/feature_true_vs_pred_TDS_gL.png)
 </details>
 
-<details><summary>Light_kW_m2</summary>
-
-![Light_kW_m2](mae_pretrain/feature_true_vs_pred_Light_kW_m2.png)
-</details>
-
 ### 1b. Validation Loss Curve
 
-- Final train loss: **0.121608**
+- Final train loss: **0.084789**
 
-- Final val loss: **0.088185**
+- Final val loss: **0.443299**
 
 ![Validation Loss Curve](mae_pretrain/val_loss_curve.png)
 
@@ -95,9 +89,9 @@ Generated automatically by `evaluations/run_evaluation.py`
 
 | Target | MAE | RMSE | R2 |
 |--------|-----|------|-----|
-| Selectivity | 0.7636 | 1.1566 | 0.9065 |
-| Li_Crystallization_mg_m2_h | 0.0373 | 0.0602 | 0.6720 |
-| Evap_kg_m2_h | 0.0138 | 0.0188 | 0.9166 |
+| Selectivity | 0.4016 | 0.7541 | 0.9603 |
+| Li_Crystallization_mg_m2_h | 0.0372 | 0.0576 | 0.6991 |
+| Evap_kg_m2_h | 0.0141 | 0.0190 | 0.9148 |
 
 ![LOO-CV Scatter](regression/loo_cv_scatter.png)
 
@@ -105,17 +99,17 @@ Generated automatically by `evaluations/run_evaluation.py`
 
 | Target | Min | Max | Mean | Negative Count |
 |--------|-----|-----|------|---------------|
-| Selectivity | 4.3604 | 20.4769 | 11.6563 | 0 |
-| Li_Crystallization_mg_m2_h | 0.1375 | 0.4784 | 0.2802 | 0 |
-| Evap_kg_m2_h | 1.1751 | 1.5271 | 1.2574 | 0 |
+| Selectivity | 4.0924 | 23.3012 | 11.8281 | 0 |
+| Li_Crystallization_mg_m2_h | 0.1497 | 0.4867 | 0.2921 | 0 |
+| Evap_kg_m2_h | 1.1788 | 1.5129 | 1.2573 | 0 |
 
 ### 2c. Baseline Comparison
 
 | Method | Target | MAE | RMSE | R2 |
 |--------|--------|-----|------|-----|
-| MAE+Head | Selectivity | 0.7636 | 1.1566 | 0.9065 |
-| MAE+Head | Li_Crystallization_mg_m2_h | 0.0373 | 0.0602 | 0.6720 |
-| MAE+Head | Evap_kg_m2_h | 0.0138 | 0.0188 | 0.9166 |
+| MAE+Head | Selectivity | 0.4016 | 0.7541 | 0.9603 |
+| MAE+Head | Li_Crystallization_mg_m2_h | 0.0372 | 0.0576 | 0.6991 |
+| MAE+Head | Evap_kg_m2_h | 0.0141 | 0.0190 | 0.9148 |
 | Mean | Selectivity | 2.3662 | 3.8315 | -0.0258 |
 | Mean | Li_Crystallization_mg_m2_h | 0.0978 | 0.1064 | -0.0258 |
 | Mean | Evap_kg_m2_h | 0.0338 | 0.0661 | -0.0258 |
@@ -124,4 +118,3 @@ Generated automatically by `evaluations/run_evaluation.py`
 | Linear | Evap_kg_m2_h | 0.0279 | 0.0411 | 0.6031 |
 
 ![Baseline Comparison](regression/baseline_comparison.png)
-

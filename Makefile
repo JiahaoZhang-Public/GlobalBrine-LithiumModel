@@ -1,13 +1,11 @@
 .PHONY: clean data features train_mae finetune predict_brines predict_samples \
-	smoke_train lint test requirements sync_data_to_s3 sync_data_from_s3
+	smoke_train lint test requirements
 
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
 
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
-PROFILE = default
 PROJECT_NAME = global-brine-lithium-model
 PYTHON_INTERPRETER = python3
 PYTHON_VERSION ?= 3.10
@@ -68,22 +66,6 @@ lint:
 ## Run unit tests
 test:
 	pytest -q
-
-## Upload Data to S3
-sync_data_to_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync data/ s3://$(BUCKET)/data/
-else
-	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
-endif
-
-## Download Data from S3
-sync_data_from_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync s3://$(BUCKET)/data/ data/
-else
-	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
-endif
 
 ## Set up python interpreter environment
 create_environment:

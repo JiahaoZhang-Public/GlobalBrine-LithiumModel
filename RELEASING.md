@@ -15,8 +15,8 @@ This repository uses lightweight, manual releases via Git tags.
 git checkout main
 git pull --ff-only
 
-git tag -a v0.2.2 -m "v0.2.2"
-git push origin v0.2.2
+git tag -a v0.3.0 -m "v0.3.0"
+git push origin v0.3.0
 ```
 
 5. (GitHub) Create a Release from the tag and paste highlights from `CHANGELOG.md`.

@@ -12,16 +12,18 @@ from torch.utils.data import DataLoader, TensorDataset
 
 try:
     from src.constants import BRINE_FEATURE_COLUMNS, EXPERIMENTAL_FEATURE_COLUMNS
+    from src.models.film import FiLMConfig, FiLMRegressionHead
     from src.models.mae import TabularMAE, TabularMAEConfig
-    from src.models.regression_head import RegressionHead, RegressionHeadConfig
+    from src.models.regression_head import RegressionHeadConfig
     from src.models.wandb_utils import init_wandb, log_wandb
 except ModuleNotFoundError:  # pragma: no cover
     import sys
 
     sys.path.append(str(Path(__file__).resolve().parents[2]))
     from src.constants import BRINE_FEATURE_COLUMNS, EXPERIMENTAL_FEATURE_COLUMNS
+    from src.models.film import FiLMConfig, FiLMRegressionHead
     from src.models.mae import TabularMAE, TabularMAEConfig
-    from src.models.regression_head import RegressionHead, RegressionHeadConfig
+    from src.models.regression_head import RegressionHeadConfig
     from src.models.wandb_utils import init_wandb, log_wandb
 
 
@@ -70,12 +72,18 @@ def finetune_regression_head(
     encoder: TabularMAE,
     *,
     head_config: RegressionHeadConfig | None = None,
+    film_config: FiLMConfig | None = None,
     finetune_config: FinetuneConfig | None = None,
     freeze_encoder: bool = True,
     mae_feature_names: list[str] | None = None,
     wandb_run=None,
-) -> RegressionHead:
+) -> FiLMRegressionHead:
+    """Fine-tune a FiLM-conditioned regression head.
+
+    Light_kW_m2 conditions the head via FiLM instead of entering the encoder.
+    """
     head_config = head_config or RegressionHeadConfig(out_dim=y_exp.shape[1])
+    film_config = film_config or FiLMConfig(latent_dim=encoder.config.d_model)
     finetune_config = finetune_config or FinetuneConfig()
 
     torch.manual_seed(finetune_config.seed)
@@ -88,10 +96,11 @@ def finetune_regression_head(
         if mae_feature_names is not None
         else list(BRINE_FEATURE_COLUMNS)
     )
-    light_in_encoder = "Light_kW_m2" in encoder_features
-    concat_light = not light_in_encoder
-    head_in_dim = encoder.config.d_model + (1 if concat_light else 0)
-    head = RegressionHead(in_dim=head_in_dim, config=head_config).to(dev)
+
+    head_in_dim = encoder.config.d_model
+    film_head = FiLMRegressionHead(
+        in_dim=head_in_dim, head_config=head_config, film_config=film_config
+    ).to(dev)
 
     x = torch.from_numpy(x_exp).to(dtype=torch.float32)
     y = torch.from_numpy(y_exp).to(dtype=torch.float32)
@@ -109,30 +118,30 @@ def finetune_regression_head(
     else:
         encoder.train()
 
-    head.train()
+    film_head.train()
+    trainable_params = list(film_head.parameters())
+    if not freeze_encoder:
+        trainable_params += list(encoder.parameters())
     optim = torch.optim.AdamW(
-        (
-            head.parameters()
-            if freeze_encoder
-            else list(head.parameters()) + list(encoder.parameters())
-        ),
+        trainable_params,
         lr=finetune_config.lr,
         weight_decay=finetune_config.weight_decay,
     )
     loss_fn = nn.MSELoss()
 
-    tds_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("TDS_gL")
-    mlr_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("MLR")
-    light_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("Light_kW_m2")
+    # Locate experimental feature indices.
+    exp_features = list(EXPERIMENTAL_FEATURE_COLUMNS)
+    tds_idx = exp_features.index("TDS_gL") if "TDS_gL" in exp_features else None
+    mlr_idx = exp_features.index("MLR") if "MLR" in exp_features else None
+    light_idx = (
+        exp_features.index("Light_kW_m2") if "Light_kW_m2" in exp_features else None
+    )
+
+    # Map experimental features to MAE encoder positions.
     chem_tds = (
         encoder_features.index("TDS_gL") if "TDS_gL" in encoder_features else None
     )
     chem_mlr = encoder_features.index("MLR") if "MLR" in encoder_features else None
-    chem_light = (
-        encoder_features.index("Light_kW_m2")
-        if "Light_kW_m2" in encoder_features
-        else None
-    )
 
     global_step = 0
     for _epoch in range(finetune_config.epochs):
@@ -142,20 +151,17 @@ def finetune_regression_head(
             batch_x = batch_x.to(dev, non_blocking=True)
             batch_y = batch_y.to(dev, non_blocking=True)
 
-            # Map experimental features into the MAE's chemistry feature space.
-            # Current experimental features are: [TDS_gL, MLR, Light_kW_m2].
+            # Build chemistry input for encoder (9 features, no Light).
             chem = torch.full(
                 (batch_x.shape[0], encoder.num_features),
                 float("nan"),
                 device=dev,
                 dtype=batch_x.dtype,
             )
-            if chem_tds is not None:
+            if chem_tds is not None and tds_idx is not None:
                 chem[:, chem_tds] = batch_x[:, tds_idx]
-            if chem_mlr is not None:
+            if chem_mlr is not None and mlr_idx is not None:
                 chem[:, chem_mlr] = batch_x[:, mlr_idx]
-            if chem_light is not None:
-                chem[:, chem_light] = batch_x[:, light_idx]
 
             if freeze_encoder:
                 with torch.no_grad():
@@ -163,11 +169,10 @@ def finetune_regression_head(
             else:
                 z = encoder.encode(chem)
 
-            if concat_light:
-                light = batch_x[:, light_idx].unsqueeze(1)
-                pred = head(torch.cat([z, light], dim=1))
-            else:
-                pred = head(z)
+            # Light enters via FiLM conditioning.
+            light = batch_x[:, light_idx].unsqueeze(1)  # [B, 1]
+            pred = film_head(z, light)
+
             loss = loss_fn(pred, batch_y)
             optim.zero_grad(set_to_none=True)
             loss.backward()
@@ -192,29 +197,31 @@ def finetune_regression_head(
                 step=global_step,
             )
 
-    return head
+    return film_head
 
 
 def save_head_checkpoint(
     path: Path,
-    head: RegressionHead,
+    film_head: FiLMRegressionHead,
     *,
     head_config: RegressionHeadConfig,
+    film_config: FiLMConfig,
     finetune_config: FinetuneConfig,
     mae_checkpoint_path: str,
     in_dim: int,
-    concat_light: bool,
     mae_feature_names: list[str],
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
         {
-            "head_state_dict": head.state_dict(),
+            "head_state_dict": film_head.head.state_dict(),
+            "film_state_dict": film_head.film.state_dict(),
             "head_config": head_config.as_dict(),
+            "film_config": film_config.as_dict(),
             "finetune_config": finetune_config.as_dict(),
             "mae_checkpoint": mae_checkpoint_path,
             "in_dim": int(in_dim),
-            "concat_light": bool(concat_light),
+            "use_film": True,
             "mae_feature_names": list(mae_feature_names),
         },
         path,
@@ -286,15 +293,15 @@ def main(
     ckpt = load_mae_checkpoint(Path(mae_path))
     encoder = build_encoder_from_checkpoint(ckpt)
     mae_feature_names = mae_feature_names_from_checkpoint(ckpt)
-    concat_light = "Light_kW_m2" not in mae_feature_names
-    head_in_dim = encoder.config.d_model + (1 if concat_light else 0)
 
+    head_in_dim = encoder.config.d_model
     head_config = RegressionHeadConfig(
         hidden_dim=hidden_dim,
         n_layers=head_layers,
         dropout=dropout,
         out_dim=y_exp.shape[1],
     )
+    film_config = FiLMConfig(latent_dim=encoder.config.d_model)
     finetune_config = FinetuneConfig(
         epochs=epochs,
         batch_size=batch_size,
@@ -315,20 +322,22 @@ def main(
             "num_features_encoder": int(encoder.num_features),
             "num_features_exp": int(x_exp.shape[1]),
             "num_targets": int(y_exp.shape[1]),
-            "concat_light": bool(concat_light),
+            "use_film": True,
             "mae_feature_names": list(mae_feature_names),
             **ckpt.get("mae_config", {}),
             **head_config.as_dict(),
+            **film_config.as_dict(),
             **finetune_config.as_dict(),
         },
         tags=wandb_tags,
     )
 
-    head = finetune_regression_head(
+    film_head = finetune_regression_head(
         x_exp,
         y_exp,
         encoder,
         head_config=head_config,
+        film_config=film_config,
         finetune_config=finetune_config,
         freeze_encoder=freeze_encoder,
         mae_feature_names=mae_feature_names,
@@ -336,12 +345,12 @@ def main(
     )
     save_head_checkpoint(
         Path(out_path),
-        head,
+        film_head,
         head_config=head_config,
+        film_config=film_config,
         finetune_config=finetune_config,
         mae_checkpoint_path=mae_path,
         in_dim=head_in_dim,
-        concat_light=concat_light,
         mae_feature_names=mae_feature_names,
     )
     click.echo(f"Saved regression head to: {out_path}")

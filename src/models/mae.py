@@ -21,22 +21,6 @@ class TabularMAEConfig:
         return asdict(self)
 
 
-def sample_feature_mask(
-    batch_size: int,
-    num_features: int,
-    mask_ratio: float,
-    *,
-    device: torch.device,
-) -> torch.Tensor:
-    if not (0.0 <= mask_ratio <= 1.0):
-        raise ValueError("mask_ratio must be in [0, 1].")
-    if num_features <= 0:
-        raise ValueError("num_features must be > 0.")
-
-    probs = torch.full((batch_size, num_features), mask_ratio, device=device)
-    return torch.bernoulli(probs).to(dtype=torch.bool)
-
-
 def build_effective_masks(
     x: torch.Tensor,
     *,

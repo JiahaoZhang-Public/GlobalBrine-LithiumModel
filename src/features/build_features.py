@@ -243,16 +243,6 @@ def build_and_save_features(
     x_exp = load_csv_matrix(experimental_path, EXPERIMENTAL_FEATURE_COLUMNS)
     y_exp = load_csv_matrix(experimental_path, EXPERIMENTAL_TARGET_COLUMNS)
 
-    if "Light_kW_m2" in brine_feature_columns:
-        light_idx = list(brine_feature_columns).index("Light_kW_m2")
-        if np.isnan(x_lake[:, light_idx]).all():
-            raise FeatureBuildError(
-                "brines.csv contains no usable Light_kW_m2 values. "
-                "Run `python src/data/make_dataset.py --light-geotiff ... "
-                "--light-scale 0.0416666667 data/raw data/processed` "
-                "to populate Light_kW_m2 from the GHI GeoTIFF."
-            )
-
     if print_stats:
         _print_matrix_stats("X_lake (raw)", x_lake, brine_feature_columns)
         _print_matrix_stats("X_exp (raw)", x_exp, EXPERIMENTAL_FEATURE_COLUMNS)
@@ -277,12 +267,12 @@ def build_and_save_features(
     )
 
     brine_feature_stats = _stats_map(stats_by_name["brine_features"])
+    # Build experimental scaler: TDS/MLR use brine stats, Light uses exp stats.
     exp_feature_stats = dict(brine_feature_stats)
-    if "Light_kW_m2" not in exp_feature_stats:
-        exp_light = x_exp[:, list(EXPERIMENTAL_FEATURE_COLUMNS).index("Light_kW_m2")]
-        light_mean = float(np.nanmean(exp_light, dtype=np.float64))
-        light_std = float(np.nanstd(exp_light, dtype=np.float64)) or 1.0
-        exp_feature_stats["Light_kW_m2"] = (light_mean, light_std)
+    exp_light = x_exp[:, list(EXPERIMENTAL_FEATURE_COLUMNS).index("Light_kW_m2")]
+    light_mean = float(np.nanmean(exp_light, dtype=np.float64))
+    light_std = float(np.nanstd(exp_light, dtype=np.float64)) or 1.0
+    exp_feature_stats["Light_kW_m2"] = (light_mean, light_std)
     stats_by_name["experimental_features"] = StandardScalerStats(
         feature_names=EXPERIMENTAL_FEATURE_COLUMNS,
         mean=tuple(exp_feature_stats[n][0] for n in EXPERIMENTAL_FEATURE_COLUMNS),

@@ -47,6 +47,7 @@ from src.models.finetune_regression import (
 )
 from src.models.mae import TabularMAE, TabularMAEConfig
 from src.models.mae_metrics import feature_true_vs_pred, per_feature_drop_mse
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 # ---------------------------------------------------------------------------
@@ -65,7 +66,7 @@ FEATURE_NAMES = list(BRINE_FEATURE_COLUMNS)
 TARGET_NAMES = list(EXPERIMENTAL_TARGET_COLUMNS)
 EXP_FEATURE_NAMES = list(EXPERIMENTAL_FEATURE_COLUMNS)
 
-DEVICE = torch.device("cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # ===================================================================
@@ -105,7 +106,9 @@ def run_mae_pretrain_evaluation() -> dict:
     colors = ["#e74c3c" if n == "TDS_gL" else "#3498db" for n in names]
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    bars = ax.bar(range(len(names)), mses, color=colors, edgecolor="white", linewidth=0.5)
+    bars = ax.bar(
+        range(len(names)), mses, color=colors, edgecolor="white", linewidth=0.5
+    )
     ax.set_xticks(range(len(names)))
     ax.set_xticklabels(names, rotation=45, ha="right", fontsize=9)
     ax.set_ylabel("Reconstruction MSE (normalized scale)")
@@ -293,7 +296,7 @@ def run_regression_evaluation() -> dict:
     # --- 2a. Leave-One-Out CV ---
     print(f"\n[2a] Leave-One-Out CV ({n_samples} folds)...")
     finetune_cfg = FinetuneConfig(
-        epochs=200, batch_size=16, lr=1e-3, device="cpu", seed=42
+        epochs=200, batch_size=16, lr=1e-3, device=str(DEVICE), seed=42
     )
 
     loo_preds_std = np.zeros_like(y_exp)
@@ -311,7 +314,7 @@ def run_regression_evaluation() -> dict:
         encoder = build_encoder_from_checkpoint(ckpt)
         encoder.to(DEVICE)
 
-        head = finetune_regression_head(
+        film_head = finetune_regression_head(
             x_train,
             y_train,
             encoder,
@@ -319,12 +322,10 @@ def run_regression_evaluation() -> dict:
             freeze_encoder=True,
             mae_feature_names=mae_feature_names,
         )
-        head.to(DEVICE)
+        film_head.to(DEVICE)
 
-        # Forward pass for held-out sample
+        # Forward pass for held-out sample (FiLM: Light conditions the head).
         encoder_features = list(mae_feature_names)
-        light_in_encoder = "Light_kW_m2" in encoder_features
-        concat_light = not light_in_encoder
 
         tds_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("TDS_gL")
         mlr_idx = list(EXPERIMENTAL_FEATURE_COLUMNS).index("MLR")
@@ -338,16 +339,11 @@ def run_regression_evaluation() -> dict:
             chem[0, encoder_features.index("TDS_gL")] = x_t[0, tds_idx]
         if "MLR" in encoder_features:
             chem[0, encoder_features.index("MLR")] = x_t[0, mlr_idx]
-        if "Light_kW_m2" in encoder_features:
-            chem[0, encoder_features.index("Light_kW_m2")] = x_t[0, light_idx]
 
         with torch.no_grad():
             z = encoder.encode(chem)
-            if concat_light:
-                light = x_t[:, light_idx : light_idx + 1]
-                pred = head(torch.cat([z, light], dim=1))
-            else:
-                pred = head(z)
+            light = x_t[:, light_idx : light_idx + 1]
+            pred = film_head(z, light)
             loo_preds_std[i] = pred.cpu().numpy().flatten()
 
     # De-normalize
@@ -364,9 +360,7 @@ def run_regression_evaluation() -> dict:
         rmse_val = float(np.sqrt(mean_squared_error(true_j, pred_j)))
         r2_val = float(r2_score(true_j, pred_j))
         metrics[tname] = {"MAE": mae_val, "RMSE": rmse_val, "R2": r2_val}
-        print(
-            f"  {tname:35s}  MAE={mae_val:.4f}  RMSE={rmse_val:.4f}  R2={r2_val:.4f}"
-        )
+        print(f"  {tname:35s}  MAE={mae_val:.4f}  RMSE={rmse_val:.4f}  R2={r2_val:.4f}")
 
     results["loo_cv_metrics"] = metrics
     with open(REGRESSION_DIR / "loo_cv_metrics.json", "w") as f:
@@ -473,9 +467,7 @@ def run_regression_evaluation() -> dict:
     for mi, metric_name in enumerate(["MAE", "RMSE", "R2"]):
         ax = axes[mi]
         for k, method in enumerate(methods):
-            vals = [
-                all_methods_metrics[method][t][metric_name] for t in TARGET_NAMES
-            ]
+            vals = [all_methods_metrics[method][t][metric_name] for t in TARGET_NAMES]
             ax.bar(
                 x_pos + k * width,
                 vals,
@@ -558,9 +550,7 @@ def generate_readme(mae_results: dict, reg_results: dict) -> None:
     lines.append("| Target | MAE | RMSE | R2 |")
     lines.append("|--------|-----|------|-----|")
     for tname, m in reg_results.get("loo_cv_metrics", {}).items():
-        lines.append(
-            f"| {tname} | {m['MAE']:.4f} | {m['RMSE']:.4f} | {m['R2']:.4f} |"
-        )
+        lines.append(f"| {tname} | {m['MAE']:.4f} | {m['RMSE']:.4f} | {m['R2']:.4f} |")
     lines.append("")
     lines.append("![LOO-CV Scatter](regression/loo_cv_scatter.png)\n")
 
