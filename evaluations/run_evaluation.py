@@ -65,7 +65,7 @@ FEATURE_NAMES = list(BRINE_FEATURE_COLUMNS)
 TARGET_NAMES = list(EXPERIMENTAL_TARGET_COLUMNS)
 EXP_FEATURE_NAMES = list(EXPERIMENTAL_FEATURE_COLUMNS)
 
-DEVICE = torch.device("cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # ===================================================================
