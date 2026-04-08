@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         ]
     )
 
-    map_style_url: str = "https://demotiles.maplibre.org/style.json"
+    map_style_url: str = "/map-style.json"
 
 
 @lru_cache(maxsize=1)

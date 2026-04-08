@@ -21,7 +21,7 @@ type Props = {
 
 const mapStyle =
   (import.meta.env.VITE_MAP_STYLE_URL as string | undefined) ||
-  "https://demotiles.maplibre.org/style.json";
+  "/map-style.json";
 
 function inRange(val: number | null | undefined, range: [number, number] | null) {
   if (val === null || val === undefined || Number.isNaN(val)) return false;
