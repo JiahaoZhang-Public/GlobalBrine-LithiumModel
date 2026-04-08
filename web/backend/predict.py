@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Mapping
 
 import numpy as np
 import pandas as pd
@@ -12,15 +12,15 @@ from src.constants import (
     BRINE_FEATURE_COLUMNS,
     EXPERIMENTAL_FEATURE_COLUMNS,
     EXPERIMENTAL_TARGET_COLUMNS,
+    LIGHT_COLUMN,
 )
 from src.features.scaler import (
     destandardize_preserve_nan,
     get_stats,
-    load_scaler,
     standardize_preserve_nan,
 )
+from src.models.film import FiLMRegressionHead
 from src.models.inference import (
-    InferenceArtifacts,
     load_artifacts,
     mae_impute_brine_features,
     predict_labels,
@@ -104,24 +104,60 @@ class Predictor:
         z = self.artifacts.mae.encode(
             torch.from_numpy(imputed_std).to(device=self.device, dtype=torch.float32)
         )
-        head_dim = _head_in_dim(self.artifacts.head)
-        if head_dim == int(z.shape[1]):
-            head_in = z
-        elif head_dim == int(z.shape[1]) + 1:
-            light_idx = list(BRINE_FEATURE_COLUMNS).index("Light_kW_m2")
-            light = torch.from_numpy(imputed_std[:, light_idx : light_idx + 1]).to(
-                device=self.device, dtype=torch.float32
-            )
-            head_in = torch.cat([z, light], dim=1)
-        else:  # pragma: no cover
-            raise RuntimeError(
-                f"Unexpected head input dimension {head_dim}; expected {z.shape[1]} or {int(z.shape[1]) + 1}."
-            )
+
+        # Standardize Light using experimental scaler stats.
+        light_val = _safe_float(payload.get(LIGHT_COLUMN))
+        exp_mean, exp_std = get_stats(
+            self.scaler,
+            key="experimental_features",
+            feature_names=EXPERIMENTAL_FEATURE_COLUMNS,
+        )
+        exp_cols = list(EXPERIMENTAL_FEATURE_COLUMNS)
+        light_exp_idx = exp_cols.index(LIGHT_COLUMN)
 
         with torch.no_grad():
-            y_std_pred = (
-                self.artifacts.head(head_in).detach().cpu().numpy().astype(np.float32)
-            )
+            if isinstance(self.artifacts.head, FiLMRegressionHead):
+                # v0.3.0 FiLM: Light conditions the head separately.
+                light_raw = float(light_val) if light_val is not None else 0.0
+                light_std = (light_raw - exp_mean[light_exp_idx]) / exp_std[
+                    light_exp_idx
+                ]
+                light_t = torch.tensor(
+                    [[light_std]], device=self.device, dtype=torch.float32
+                )
+                y_std_pred = (
+                    self.artifacts.head(z, light_t)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                    .astype(np.float32)
+                )
+            else:
+                # Legacy fallback.
+                head_dim = _head_in_dim(self.artifacts.head)
+                if head_dim == int(z.shape[1]):
+                    head_in = z
+                elif head_dim == int(z.shape[1]) + 1:
+                    light_raw = float(light_val) if light_val is not None else 0.0
+                    light_std = (light_raw - exp_mean[light_exp_idx]) / exp_std[
+                        light_exp_idx
+                    ]
+                    light_t = torch.tensor(
+                        [[light_std]], device=self.device, dtype=torch.float32
+                    )
+                    head_in = torch.cat([z, light_t], dim=1)
+                else:
+                    raise RuntimeError(
+                        f"Unexpected head input dimension {head_dim}; "
+                        f"expected {z.shape[1]} or {int(z.shape[1]) + 1}."
+                    )
+                y_std_pred = (
+                    self.artifacts.head(head_in)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                    .astype(np.float32)
+                )
 
         y_mean, y_std = get_stats(
             self.scaler,
@@ -140,6 +176,8 @@ class Predictor:
             col: (None if np.isnan(imputed_raw[0, idx]) else float(imputed_raw[0, idx]))
             for idx, col in enumerate(BRINE_FEATURE_COLUMNS)
         }
+        # Include Light_kW_m2 (not in BRINE_FEATURE_COLUMNS since v0.3.0).
+        imputed_map[LIGHT_COLUMN] = float(light_val) if light_val is not None else None
         return PredictionResult(predictions=preds, imputed_input=imputed_map)
 
     def predict_dataframe(

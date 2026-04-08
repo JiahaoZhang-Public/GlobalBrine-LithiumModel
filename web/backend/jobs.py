@@ -134,7 +134,7 @@ class JobStore:
         with self._lock:
             expired = [jid for jid, job in self._jobs.items() if self._is_expired(job)]
             for jid in expired:
-                job = self._jobs.pop(jid)
+                self._jobs.pop(jid)
                 job_dir = self.root / jid
                 if job_dir.exists():
                     for f in job_dir.iterdir():

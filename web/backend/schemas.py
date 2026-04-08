@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal
 
 from pydantic import BaseModel, Field
 
-from src.constants import BRINE_FEATURE_COLUMNS, EXPERIMENTAL_TARGET_COLUMNS
+from src.constants import (
+    BRINE_FEATURE_COLUMNS,
+    EXPERIMENTAL_TARGET_COLUMNS,
+    LIGHT_COLUMN,
+)
 
 
 class ModelArtifact(BaseModel):
@@ -21,7 +25,7 @@ class ModelMetadata(BaseModel):
     git_commit: str | None = None
     git_tag: str | None = None
     artifacts: List[ModelArtifact]
-    feature_schema: List[str] = list(BRINE_FEATURE_COLUMNS)
+    feature_schema: List[str] = list(BRINE_FEATURE_COLUMNS) + [LIGHT_COLUMN]
     targets: List[str] = list(EXPERIMENTAL_TARGET_COLUMNS)
     scaler_path: str
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import io
 import logging
 import subprocess
 from contextlib import asynccontextmanager
@@ -20,9 +19,7 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-
-from src.constants import BRINE_FEATURE_COLUMNS
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from .config import Settings, get_settings
 from .data_access import ensure_predictions_csv, load_geojson

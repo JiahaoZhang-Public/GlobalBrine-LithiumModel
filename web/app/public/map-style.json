@@ -1,0 +1,62 @@
+{
+  "version": 8,
+  "name": "GlobalBrine Landmass",
+  "center": [0, 20],
+  "zoom": 1.5,
+  "bearing": 0,
+  "pitch": 0,
+  "sources": {
+    "maplibre": {
+      "type": "vector",
+      "url": "https://demotiles.maplibre.org/tiles/tiles.json"
+    }
+  },
+  "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#0f172a"
+      }
+    },
+    {
+      "id": "land",
+      "type": "fill",
+      "source": "maplibre",
+      "source-layer": "countries",
+      "paint": {
+        "fill-color": "#1e293b"
+      }
+    },
+    {
+      "id": "coastline",
+      "type": "line",
+      "source": "maplibre",
+      "source-layer": "coastline",
+      "paint": {
+        "line-color": "#334155",
+        "line-width": {
+          "stops": [
+            [0, 0.5],
+            [4, 1.2],
+            [10, 2]
+          ]
+        },
+        "line-opacity": 0.8
+      }
+    },
+    {
+      "id": "geolines",
+      "type": "line",
+      "source": "maplibre",
+      "source-layer": "geolines",
+      "paint": {
+        "line-color": "#334155",
+        "line-width": 0.3,
+        "line-dasharray": [4, 4],
+        "line-opacity": 0.3
+      }
+    }
+  ]
+}
