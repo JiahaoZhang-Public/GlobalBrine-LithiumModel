@@ -61,7 +61,7 @@ export default function Landing() {
                 {t("landing.cta.predict")}
               </Link>
               <span className="text-slate-400 text-sm">
-                Model v{model?.version ?? "0.1.x"} • inputs in g/L, kW/m²
+                Model v{model?.version ?? "0.3.0"} • inputs in g/L, kW/m²
               </span>
             </div>
           </div>
