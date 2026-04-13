@@ -11,6 +11,7 @@ python scripts/py/viz/figure2_map.py \
 """
 
 import argparse
+import sys
 from pathlib import Path
 from typing import Tuple
 
@@ -18,6 +19,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+# Ensure project root is importable
+_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(_ROOT))
+
+from src.constants import NATURE_STYLE  # noqa: E402
+
+plt.style.use(NATURE_STYLE)
 
 DEFAULT_EXTENT = [-180, 180, -60, 65]
 FIGURE1_EXTENT = [-180, 180, -60, 80]
@@ -457,10 +466,10 @@ def main() -> None:
     )
     gl.top_labels = False
     gl.right_labels = False
-    gl.xlabel_style = {"size": 8}
-    gl.ylabel_style = {"size": 8}
+    gl.xlabel_style = {"size": 7}
+    gl.ylabel_style = {"size": 7}
 
-    ax.spines["geo"].set_linewidth(1.2)
+    ax.spines["geo"].set_linewidth(0.5)
     ax.spines["geo"].set_edgecolor("black")
 
     if ghi_mesh is not None:
@@ -472,8 +481,8 @@ def main() -> None:
             pad=0.06,
             shrink=0.9,
         )
-        cbar_ghi.ax.tick_params(labelsize=8)
-        cbar_ghi.set_label(args.ghi_label, fontsize=9)
+        cbar_ghi.ax.tick_params(labelsize=7)
+        cbar_ghi.set_label(args.ghi_label, fontsize=8)
 
     evap_ticks = [
         (evap_bins[i] + evap_bins[i + 1]) / 2 for i in range(len(evap_bins) - 1)
@@ -490,8 +499,8 @@ def main() -> None:
     )
     cbar_evap.set_ticks(evap_ticks)
     cbar_evap.set_ticklabels(evap_labels)
-    cbar_evap.ax.tick_params(labelsize=8)
-    cbar_evap.set_label(args.evap_label, fontsize=9)
+    cbar_evap.ax.tick_params(labelsize=7)
+    cbar_evap.set_label(args.evap_label, fontsize=8)
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,59 @@
+# Nature journal house style for GlobalBrine figures.
+# Usage:  plt.style.use("<project_root>/scripts/py/viz/nature.mplstyle")
+#         or  with plt.style.context(STYLE_PATH): ...
+
+# --- Font ----------------------------------------------------------------
+font.family:      sans-serif
+font.sans-serif:  Arial, Helvetica, DejaVu Sans
+font.size:        7
+mathtext.default: regular
+
+# --- Axes ----------------------------------------------------------------
+axes.linewidth:   0.5
+axes.labelsize:   8
+axes.titlesize:   9
+axes.titleweight: bold
+axes.titlepad:    6
+axes.labelpad:    4
+axes.grid:        false
+axes.spines.top:    false
+axes.spines.right:  false
+axes.facecolor:   white
+axes.edgecolor:   black
+
+# --- Ticks ---------------------------------------------------------------
+xtick.major.width:  0.5
+xtick.major.size:   3
+xtick.minor.visible: false
+xtick.labelsize:    7
+xtick.direction:    out
+
+ytick.major.width:  0.5
+ytick.major.size:   3
+ytick.minor.visible: false
+ytick.labelsize:    7
+ytick.direction:    out
+
+# --- Lines & markers -----------------------------------------------------
+lines.linewidth:  1.0
+lines.markersize: 4
+scatter.marker:   o
+
+# --- Legend ---------------------------------------------------------------
+legend.fontsize:    7
+legend.frameon:     false
+legend.borderpad:   0.3
+legend.handlelength: 1.2
+
+# --- Figure --------------------------------------------------------------
+figure.facecolor: white
+figure.dpi:       300
+savefig.dpi:      300
+savefig.bbox:     tight
+savefig.pad_inches: 0.05
+savefig.transparent: false
+
+# --- Grid (off by default, available for override) -----------------------
+grid.linewidth:   0.3
+grid.alpha:       0.3
+grid.color:       cccccc

@@ -36,8 +36,11 @@ from src.constants import (
     BRINE_FEATURE_COLUMNS,
     EXPERIMENTAL_FEATURE_COLUMNS,
     EXPERIMENTAL_TARGET_COLUMNS,
+    NATURE_STYLE,
     display_label,
 )
+
+plt.style.use(NATURE_STYLE)
 from src.features.scaler import destandardize_preserve_nan, get_stats, load_scaler
 from src.models.finetune_regression import (
     FinetuneConfig,
@@ -68,6 +71,14 @@ TARGET_NAMES = list(EXPERIMENTAL_TARGET_COLUMNS)
 EXP_FEATURE_NAMES = list(EXPERIMENTAL_FEATURE_COLUMNS)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Nature-style colour palette (muted, colour-blind-safe subset)
+C_BLUE = "#4878CF"       # primary data
+C_RED = "#C44E52"        # secondary / emphasis
+C_GREEN = "#6ACC65"      # tertiary
+C_GREY = "#8C8C8C"       # baselines / neutral
+C_ORANGE = "#D65F5F"     # category accent
+C_TEAL = "#59A89C"       # category accent
 
 
 # ===================================================================
@@ -105,25 +116,22 @@ def run_mae_pretrain_evaluation() -> dict:
     names = [FEATURE_NAMES[r.feature_index] for r in drop_results]
     labels = [display_label(n) for n in names]
     mses = [r.mse for r in drop_results]
-    colors = ["#e74c3c" if n == "TDS_gL" else "#3498db" for n in names]
+    colors = [C_RED if n == "TDS_gL" else C_BLUE for n in names]
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    bars = ax.bar(
-        range(len(names)), mses, color=colors, edgecolor="white", linewidth=0.5
-    )
+    fig, ax = plt.subplots(figsize=(4.5, 2.8))
+    bars = ax.bar(range(len(names)), mses, color=colors, edgecolor="none")
     ax.set_xticks(range(len(names)))
-    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=9)
-    ax.set_ylabel("Reconstruction MSE (normalised scale)")
+    ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_ylabel("Reconstruction MSE (normalised)")
     ax.set_title("Per-feature reconstruction error (MAE)")
     ax.legend(
         [bars[names.index("TDS_gL")], bars[0]],
         [display_label("TDS_gL") + " (focus)", "Other features"],
         loc="upper right",
     )
-    for i, (v, n_obs) in enumerate(zip(mses, [r.n for r in drop_results])):
-        ax.text(i, v + 0.002, f"{v:.4f}", ha="center", va="bottom", fontsize=7)
-    fig.tight_layout()
-    fig.savefig(MAE_PRETRAIN_DIR / "per_feature_reconstruction.png", dpi=150)
+    for i, v in enumerate(mses):
+        ax.text(i, v + 0.002, f"{v:.4f}", ha="center", va="bottom")
+    fig.savefig(MAE_PRETRAIN_DIR / "per_feature_reconstruction.png")
     plt.close(fig)
 
     # Scatter plots per feature
@@ -134,17 +142,16 @@ def run_mae_pretrain_evaluation() -> dict:
         )
         if len(true_vals) == 0:
             continue
-        fig, ax = plt.subplots(figsize=(5, 5))
-        ax.scatter(true_vals, pred_vals, alpha=0.3, s=10, color="#3498db")
+        fig, ax = plt.subplots(figsize=(3, 3))
+        ax.scatter(true_vals, pred_vals, alpha=0.4, s=8, color=C_BLUE, linewidths=0)
         lo = min(true_vals.min(), pred_vals.min())
         hi = max(true_vals.max(), pred_vals.max())
-        ax.plot([lo, hi], [lo, hi], "r--", linewidth=1, label="y=x")
+        ax.plot([lo, hi], [lo, hi], "--", color=C_RED, linewidth=0.8, label="y = x")
         ax.set_xlabel(f"True {display_label(fname)} (normalised)")
         ax.set_ylabel(f"Predicted {display_label(fname)} (normalised)")
         ax.set_title(f"MAE reconstruction: {display_label(fname)}")
         ax.legend()
-        fig.tight_layout()
-        fig.savefig(MAE_PRETRAIN_DIR / f"feature_true_vs_pred_{fname}.png", dpi=150)
+        fig.savefig(MAE_PRETRAIN_DIR / f"feature_true_vs_pred_{fname}.png")
         plt.close(fig)
 
     # --- 1b. Validation loss curve ---
@@ -214,16 +221,14 @@ def run_mae_pretrain_evaluation() -> dict:
         "final_val_loss": val_losses[-1],
     }
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(range(1, epochs + 1), train_losses, label="Train loss", color="#3498db")
-    ax.plot(range(1, epochs + 1), val_losses, label="Validation loss", color="#e74c3c")
+    fig, ax = plt.subplots(figsize=(3.5, 2.5))
+    ax.plot(range(1, epochs + 1), train_losses, label="Train", color=C_BLUE)
+    ax.plot(range(1, epochs + 1), val_losses, label="Validation", color=C_RED)
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Reconstruction loss (MSE)")
     ax.set_title("MAE pre-training loss curve")
     ax.legend()
-    ax.grid(True, alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(MAE_PRETRAIN_DIR / "val_loss_curve.png", dpi=150)
+    fig.savefig(MAE_PRETRAIN_DIR / "val_loss_curve.png")
     plt.close(fig)
 
     # --- 1c. Latent space visualization ---
@@ -239,31 +244,31 @@ def run_mae_pretrain_evaluation() -> dict:
     water_types = brines_df["Type_of_water"].fillna("Unknown").values
     unique_types = sorted(set(water_types))
     color_map = {
-        "Salt lake brine": "#3498db",
-        "seawater": "#2ecc71",
-        "geothermal brine": "#e74c3c",
-        "Oil field brine": "#f39c12",
-        "Unknown": "#95a5a6",
+        "Salt lake brine": C_BLUE,
+        "seawater": C_TEAL,
+        "geothermal brine": C_RED,
+        "Oil field brine": C_ORANGE,
+        "Unknown": C_GREY,
     }
 
-    fig, ax = plt.subplots(figsize=(9, 7))
+    fig, ax = plt.subplots(figsize=(4.5, 3.5))
     for wt in unique_types:
         mask = water_types == wt
-        color = color_map.get(wt, "#95a5a6")
+        color = color_map.get(wt, C_GREY)
         ax.scatter(
             latent_2d[mask, 0],
             latent_2d[mask, 1],
             label=f"{wt} (n={mask.sum()})",
-            alpha=0.5,
-            s=15,
+            alpha=0.6,
+            s=10,
             color=color,
+            linewidths=0,
         )
     ax.set_xlabel("t-SNE dimension 1")
     ax.set_ylabel("t-SNE dimension 2")
     ax.set_title("MAE latent space (coloured by water type)")
-    ax.legend(fontsize=8, loc="best")
-    fig.tight_layout()
-    fig.savefig(MAE_PRETRAIN_DIR / "latent_space_tsne.png", dpi=150)
+    ax.legend(loc="best")
+    fig.savefig(MAE_PRETRAIN_DIR / "latent_space_tsne.png")
     plt.close(fig)
 
     print("  Done: MAE pretrain evaluation complete.")
@@ -369,25 +374,29 @@ def run_regression_evaluation() -> dict:
         json.dump(metrics, f, indent=2)
 
     # LOO-CV scatter plot
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(7, 2.5))
     for j, (tname, ax) in enumerate(zip(TARGET_NAMES, axes)):
         true_j = y_true_raw[:, j]
         pred_j = y_pred_raw[:, j]
-        ax.scatter(true_j, pred_j, alpha=0.6, s=20, color="#3498db")
+        ax.scatter(true_j, pred_j, alpha=0.7, s=12, color=C_BLUE, linewidths=0)
         lo = min(true_j.min(), pred_j.min())
         hi = max(true_j.max(), pred_j.max())
         margin = (hi - lo) * 0.05
         ax.plot(
-            [lo - margin, hi + margin], [lo - margin, hi + margin], "r--", linewidth=1
+            [lo - margin, hi + margin],
+            [lo - margin, hi + margin],
+            "--",
+            color=C_RED,
+            linewidth=0.8,
         )
         ax.set_xlabel(f"Measured {display_label(tname)}")
         ax.set_ylabel(f"Predicted {display_label(tname)}")
         m = metrics[tname]
-        ax.set_title(f"{display_label(tname)}\n$R^2$={m['R2']:.3f}  RMSE={m['RMSE']:.4f}")
-        ax.grid(True, alpha=0.3)
-    fig.suptitle("Leave-one-out CV: predicted vs measured", fontsize=13, y=1.02)
-    fig.tight_layout()
-    fig.savefig(REGRESSION_DIR / "loo_cv_scatter.png", dpi=150, bbox_inches="tight")
+        ax.set_title(
+            f"{display_label(tname)}\n$R^2$ = {m['R2']:.3f}   RMSE = {m['RMSE']:.4f}"
+        )
+    fig.suptitle("Leave-one-out CV: predicted vs measured", y=1.04)
+    fig.savefig(REGRESSION_DIR / "loo_cv_scatter.png")
     plt.close(fig)
 
     # --- 2c. Physical bounds check ---
@@ -463,9 +472,9 @@ def run_regression_evaluation() -> dict:
     methods = list(all_methods_metrics.keys())
     x_pos = np.arange(len(TARGET_NAMES))
     width = 0.25
-    method_colors = {"MAE+Head": "#3498db", "Mean": "#95a5a6", "Linear": "#2ecc71"}
+    method_colors = {"MAE+Head": C_BLUE, "Mean": C_GREY, "Linear": C_GREEN}
 
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(7, 2.5))
     for mi, metric_name in enumerate(["MAE", "RMSE", "R2"]):
         ax = axes[mi]
         for k, method in enumerate(methods):
@@ -475,22 +484,17 @@ def run_regression_evaluation() -> dict:
                 vals,
                 width,
                 label=method,
-                color=method_colors.get(method, "#777"),
-                edgecolor="white",
-                linewidth=0.5,
+                color=method_colors.get(method, C_GREY),
+                edgecolor="none",
             )
         ax.set_xticks(x_pos + width)
         ax.set_xticklabels(
-            [display_label(t) for t in TARGET_NAMES], fontsize=6, ha="center"
+            [display_label(t) for t in TARGET_NAMES], ha="center"
         )
         ax.set_title(metric_name)
-        ax.legend(fontsize=8)
-        ax.grid(True, alpha=0.3, axis="y")
-    fig.suptitle("Baseline comparison (leave-one-out CV)", fontsize=13, y=1.02)
-    fig.tight_layout()
-    fig.savefig(
-        REGRESSION_DIR / "baseline_comparison.png", dpi=150, bbox_inches="tight"
-    )
+        ax.legend()
+    fig.suptitle("Baseline comparison (leave-one-out CV)", y=1.04)
+    fig.savefig(REGRESSION_DIR / "baseline_comparison.png")
     plt.close(fig)
 
     # Store LOO-CV results for use in end-to-end
