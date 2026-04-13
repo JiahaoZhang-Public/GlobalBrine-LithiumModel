@@ -118,7 +118,7 @@ def run_mae_pretrain_evaluation() -> dict:
     mses = [r.mse for r in drop_results]
     colors = [C_RED if n == "TDS_gL" else C_BLUE for n in names]
 
-    fig, ax = plt.subplots(figsize=(4.5, 2.8))
+    fig, ax = plt.subplots(figsize=(5, 3))
     bars = ax.bar(range(len(names)), mses, color=colors, edgecolor="none")
     ax.set_xticks(range(len(names)))
     ax.set_xticklabels(labels, rotation=45, ha="right")
@@ -127,10 +127,10 @@ def run_mae_pretrain_evaluation() -> dict:
     ax.legend(
         [bars[names.index("TDS_gL")], bars[0]],
         [display_label("TDS_gL") + " (focus)", "Other features"],
-        loc="upper right",
+        loc="upper left",
     )
     for i, v in enumerate(mses):
-        ax.text(i, v + 0.002, f"{v:.4f}", ha="center", va="bottom")
+        ax.text(i, v + 0.002, f"{v:.4f}", ha="center", va="bottom", fontsize=5)
     fig.savefig(MAE_PRETRAIN_DIR / "per_feature_reconstruction.png")
     plt.close(fig)
 
@@ -374,7 +374,7 @@ def run_regression_evaluation() -> dict:
         json.dump(metrics, f, indent=2)
 
     # LOO-CV scatter plot
-    fig, axes = plt.subplots(1, 3, figsize=(7.5, 2.8))
+    fig, axes = plt.subplots(1, 3, figsize=(7.5, 3))
     for j, (tname, ax) in enumerate(zip(TARGET_NAMES, axes)):
         true_j = y_true_raw[:, j]
         pred_j = y_pred_raw[:, j]
@@ -389,13 +389,19 @@ def run_regression_evaluation() -> dict:
             color=C_RED,
             linewidth=0.8,
         )
-        ax.set_xlabel(f"Measured {display_label(tname)}")
-        ax.set_ylabel(f"Predicted {display_label(tname)}")
+        ax.set_xlabel("Measured")
+        ax.set_ylabel("Predicted")
+        ax.set_title(display_label(tname))
         m = metrics[tname]
-        ax.set_title(
-            f"{display_label(tname)}\n$R^2$ = {m['R2']:.3f}   RMSE = {m['RMSE']:.4f}"
+        ax.text(
+            0.05,
+            0.95,
+            f"$R^2$ = {m['R2']:.3f}\nRMSE = {m['RMSE']:.4f}",
+            transform=ax.transAxes,
+            va="top",
+            fontsize=6,
         )
-    fig.suptitle("Leave-one-out CV: predicted vs measured", y=1.04)
+    fig.subplots_adjust(wspace=0.4)
     fig.savefig(REGRESSION_DIR / "loo_cv_scatter.png")
     plt.close(fig)
 
@@ -474,7 +480,14 @@ def run_regression_evaluation() -> dict:
     width = 0.25
     method_colors = {"MAE+Head": C_BLUE, "Mean": C_GREY, "Linear": C_GREEN}
 
-    fig, axes = plt.subplots(1, 3, figsize=(7.5, 3.2))
+    # Short tick labels to avoid overlap
+    short_labels = {
+        "Selectivity": r"Li$^+$/Mg$^{2+}$" + "\nselectivity",
+        "Li_Crystallization_mg_m2_h": r"Li$^+$ flux",
+        "Evap_kg_m2_h": "Evaporation\nrate",
+    }
+
+    fig, axes = plt.subplots(1, 3, figsize=(7.5, 3))
     for mi, metric_name in enumerate(["MAE", "RMSE", "R2"]):
         ax = axes[mi]
         for k, method in enumerate(methods):
@@ -489,13 +502,15 @@ def run_regression_evaluation() -> dict:
             )
         ax.set_xticks(x_pos + width)
         ax.set_xticklabels(
-            [display_label(t) for t in TARGET_NAMES],
-            rotation=25,
-            ha="right",
+            [short_labels.get(t, t) for t in TARGET_NAMES],
+            ha="center",
+            fontsize=6,
         )
         ax.set_title(metric_name)
-        ax.legend()
-    fig.suptitle("Baseline comparison (leave-one-out CV)", y=1.02)
+        if mi == 0:
+            ax.legend()
+    fig.suptitle("Baseline comparison (leave-one-out CV)", y=1.0)
+    fig.subplots_adjust(wspace=0.35)
     fig.savefig(REGRESSION_DIR / "baseline_comparison.png")
     plt.close(fig)
 
