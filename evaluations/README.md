@@ -1,6 +1,6 @@
 # Model Evaluation Results
 
-Generated automatically by `evaluations/run_evaluation.py`
+Generated automatically by `evaluations/run_plots.py`
 
 ---
 
@@ -71,9 +71,9 @@ Generated automatically by `evaluations/run_evaluation.py`
 
 ### 1b. Validation Loss Curve
 
-- Final train loss: **0.084789**
+- Final train loss: **0.083631**
 
-- Final val loss: **0.443299**
+- Final val loss: **0.438218**
 
 ![Validation Loss Curve](mae_pretrain/val_loss_curve.png)
 
