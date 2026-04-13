@@ -134,3 +134,6 @@ web/app/node_modules/
 web/app/dist/
 web/app/.vite/
 !web/app/src/lib/
+
+# internal research notes
+docs/research/
