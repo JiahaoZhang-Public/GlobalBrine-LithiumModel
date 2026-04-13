@@ -113,3 +113,14 @@ DISPLAY_LABELS: dict[str, str] = {
 def display_label(column: str) -> str:
     """Return the publication-ready display label for a column name."""
     return DISPLAY_LABELS.get(column, column)
+
+
+# ---------------------------------------------------------------------------
+# Nature-style colour palette (muted, colour-blind-safe)
+# ---------------------------------------------------------------------------
+C_BLUE: str = "#4878CF"
+C_RED: str = "#C44E52"
+C_GREEN: str = "#6ACC65"
+C_GREY: str = "#8C8C8C"
+C_ORANGE: str = "#D65F5F"
+C_TEAL: str = "#59A89C"
