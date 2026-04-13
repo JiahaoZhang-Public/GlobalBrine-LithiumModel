@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: web/backend/Dockerfile
+    container_name: globalbrine-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - GLB_MODEL_VERSION=0.3.0
+      - GLB_ALLOW_ORIGINS=["*"]
+
+  nginx:
+    image: nginx:alpine
+    container_name: globalbrine-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../web/app/dist:/usr/share/nginx/html:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - api
