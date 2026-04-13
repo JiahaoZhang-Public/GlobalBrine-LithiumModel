@@ -16,12 +16,21 @@ python scripts/py/viz/figure1_map.py \
 
 import argparse
 import math
+import sys
 from pathlib import Path
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+# Ensure project root is importable
+_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(_ROOT))
+
+from src.constants import NATURE_STYLE  # noqa: E402
+
+plt.style.use(NATURE_STYLE)
 
 try:
     import cartopy.crs as ccrs
@@ -342,10 +351,10 @@ def main() -> None:
     )
     gl.top_labels = False
     gl.right_labels = False
-    gl.xlabel_style = {"size": 8}
-    gl.ylabel_style = {"size": 8}
+    gl.xlabel_style = {"size": 7}
+    gl.ylabel_style = {"size": 7}
 
-    ax.spines["geo"].set_linewidth(1.2)
+    ax.spines["geo"].set_linewidth(0.5)
     ax.spines["geo"].set_edgecolor("black")
 
     cbar = fig.colorbar(
@@ -362,8 +371,8 @@ def main() -> None:
     ]
     cbar.set_ticks(cryst_ticks)
     cbar.set_ticklabels(cryst_labels)
-    cbar.ax.tick_params(labelsize=8)
-    cbar.set_label("Li$^+$ flux (mg m$^{-2}$ h$^{-1}$)", fontsize=9)
+    cbar.ax.tick_params(labelsize=7)
+    cbar.set_label(r"Li$^+$ flux (mg m$^{-2}$ h$^{-1}$)", fontsize=8)
 
     handles = []
     for i in range(len(sel_bins) - 1):
@@ -387,8 +396,8 @@ def main() -> None:
         bbox_to_anchor=(0.02, 0.02),
         frameon=True,
         framealpha=0.9,
-        fontsize=8,
-        title_fontsize=9,
+        fontsize=7,
+        title_fontsize=8,
     )
     legend.get_frame().set_edgecolor("black")
 

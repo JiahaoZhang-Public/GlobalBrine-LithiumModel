@@ -20,6 +20,8 @@ def processed_data_dir() -> Path:
     return data_dir() / "processed"
 
 
+NATURE_STYLE: str = str(project_root() / "scripts" / "py" / "viz" / "nature.mplstyle")
+
 ION_COLUMNS: tuple[str, ...] = (
     "Li_gL",
     "Mg_gL",
