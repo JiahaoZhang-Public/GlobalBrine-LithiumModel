@@ -24,9 +24,11 @@ npm run dev
 
 The Vite dev server proxies `/api` to `http://localhost:8000`.
 
-## Public site
+## Production
 
-- Production (DigitalOcean): https://globalbrine-web-gwvzz.ondigitalocean.app/
+- URL: https://globalbrine.com
+- Hosted on Tencent Cloud Lighthouse (Singapore, 2C4G)
+- HTTPS via Let's Encrypt (auto-renew)
 
 Homepage preview:
 
@@ -61,51 +63,34 @@ Homepage preview:
 - Batch jobs persist under `web/backend/jobs/` for 48h by default.
 - Geo endpoint falls back to running `src/models/predict_brines.py` if the predictions CSV is missing.
 
-## Deploy to DigitalOcean App Platform (concise playbook)
+## Deploy (Docker Compose on any Linux server)
 
-**Components**
-- Static Site: `web/app` (build: `npm ci && npm run build`, output `dist`, enable SPA routing)
-- Web Service: `web/backend` (Dockerfile build, port 8000, health check `/api/v1/model`)
+Deployment files are in `deploy/`:
 
-**Backend Dockerfile (place at `web/backend/Dockerfile`)**
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
-COPY web/backend /app/web/backend
-COPY src /app/src
-COPY models /app/models
-COPY data/processed/feature_scaler.joblib /app/data/processed/feature_scaler.joblib
-ENV PYTHONUNBUFFERED=1 \
-    GLB_MAE_PATH=/app/models/mae_pretrained.pth \
-    GLB_HEAD_PATH=/app/models/downstream_head.pth \
-    GLB_SCALER_PATH=/app/data/processed/feature_scaler.joblib
-EXPOSE 8000
-CMD ["uvicorn", "web.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```bash
+# On the server:
+git clone https://github.com/JiahaoZhang-Public/GlobalBrine-LithiumModel.git /opt/globalbrine
+cd /opt/globalbrine
+
+# Build frontend
+cd web/app && npm ci && npm run build && cd ../..
+
+# Start services
+cd deploy && docker compose up -d --build
 ```
 
-**Env vars (Backend service)**
-```
-GLB_MODEL_VERSION=0.3.0
-GLB_MAE_PATH=/app/models/mae_pretrained.pth
-GLB_HEAD_PATH=/app/models/downstream_head.pth
-GLB_SCALER_PATH=/app/data/processed/feature_scaler.joblib
-GLB_ALLOW_ORIGINS=https://<app>.ondigitalocean.app
-GLB_PREDICTIONS_CSV=data/predictions/brines_with_predictions.csv   # optional
+**Architecture**:
+- `globalbrine-api`: FastAPI + PyTorch (CPU) in Docker, port 8000 (internal)
+- `globalbrine-nginx`: Nginx reverse proxy, serves frontend SPA + proxies `/api` to backend
+
+**HTTPS (Let's Encrypt)**:
+```bash
+sudo certbot certonly --standalone -d globalbrine.com --agree-tos --email your@email.com
+# Certs are mounted into nginx container via /etc/letsencrypt volume
 ```
 
-**DO App setup**
-1) Create App → connect repo/branch.  
-2) Add Static Site component: source `web/app`, build `npm ci && npm run build`, output `dist`, enable SPA.  
-3) Add Web Service component: source `web/backend`, build via Dockerfile, HTTP port 8000, health path `/api/v1/model`.  
-4) Deploy; default URL `https://<app>-<hash>.ondigitalocean.app`.
-   - You can use the provided `.do/app.yaml` to auto-create both components.
-
-**Verify**
+**Verify**:
 - `GET /api/v1/model` → 200 JSON
 - `GET /api/v1/data/points` → GeoJSON
 - UI routes `/`, `/map`, `/predict`, `/batch`, `/model` load (SPA fallback on)
 - `POST /api/v1/predict` returns predictions
-
-**MVP caveat**: Batch jobs use local filesystem (`web/backend/jobs`) and will reset on redeploy/scale. For durability, back with Spaces (S3) + Redis/DB in a follow-up.

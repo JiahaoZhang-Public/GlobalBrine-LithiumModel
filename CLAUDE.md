@@ -69,7 +69,7 @@ uvicorn web.backend.main:app --reload
 # Frontend
 cd web/app && npm install && npm run dev
 ```
-Production: https://globalbrine-web-gwvzz.ondigitalocean.app/
+Production: https://globalbrine.com
 
 ## Environment
 - Python >= 3.10

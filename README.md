@@ -162,7 +162,7 @@ uvicorn web.backend.main:app --reload
 cd web/app && npm install && npm run dev
 ```
 
-Production: https://globalbrine-web-gwvzz.ondigitalocean.app/
+Production: https://globalbrine.com
 
 ![Homepage](web/app/public/homepage.png)
 
