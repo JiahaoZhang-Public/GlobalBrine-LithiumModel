@@ -79,3 +79,35 @@ EXPERIMENTAL_DATASET = DatasetSpec(
     filename="experimental.csv",
     required_columns=EXPERIMENTAL_FEATURE_COLUMNS + EXPERIMENTAL_TARGET_COLUMNS,
 )
+
+# ---------------------------------------------------------------------------
+# Display labels for publication figures (Nature style)
+# ---------------------------------------------------------------------------
+# LaTeX-formatted labels for matplotlib (use raw strings).
+DISPLAY_LABELS: dict[str, str] = {
+    # Brine chemistry features
+    "Li_gL": r"Li$^+$ (g L$^{-1}$)",
+    "Mg_gL": r"Mg$^{2+}$ (g L$^{-1}$)",
+    "Na_gL": r"Na$^+$ (g L$^{-1}$)",
+    "K_gL": r"K$^+$ (g L$^{-1}$)",
+    "Ca_gL": r"Ca$^{2+}$ (g L$^{-1}$)",
+    "SO4_gL": r"SO$_4^{2-}$ (g L$^{-1}$)",
+    "Cl_gL": r"Cl$^-$ (g L$^{-1}$)",
+    "MLR": r"Mg$^{2+}$/Li$^+$ ratio",
+    "TDS_gL": r"TDS (g L$^{-1}$)",
+    # Experimental features
+    "Light_kW_m2": r"Solar irradiance (kW m$^{-2}$)",
+    # Targets
+    "Selectivity": r"Li$^+$/Mg$^{2+}$ selectivity",
+    "Li_Crystallization_mg_m2_h": r"Li$^+$ flux (mg m$^{-2}$ h$^{-1}$)",
+    "Evap_kg_m2_h": r"Evaporation rate (kg m$^{-2}$ h$^{-1}$)",
+    # Predicted targets
+    "Pred_Selectivity": r"Li$^+$/Mg$^{2+}$ selectivity",
+    "Pred_Li_Crystallization_mg_m2_h": r"Li$^+$ flux (mg m$^{-2}$ h$^{-1}$)",
+    "Pred_Evap_kg_m2_h": r"Evaporation rate (kg m$^{-2}$ h$^{-1}$)",
+}
+
+
+def display_label(column: str) -> str:
+    """Return the publication-ready display label for a column name."""
+    return DISPLAY_LABELS.get(column, column)

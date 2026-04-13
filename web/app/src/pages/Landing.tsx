@@ -61,7 +61,7 @@ export default function Landing() {
                 {t("landing.cta.predict")}
               </Link>
               <span className="text-slate-400 text-sm">
-                Model v{model?.version ?? "0.3.0"} • inputs in g/L, kW/m²
+                Model v{model?.version ?? "0.3.0"} • inputs in g L⁻¹, kW m⁻²
               </span>
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function Landing() {
               />
               <StatCard
                 label={t("landing.stat.inputs")}
-                value="g/L + kW/m²"
+                value="g L⁻¹ + kW m⁻²"
                 helper={t("landing.stat.helper.inputs")}
                 icon={<Ruler size={20} />}
                 tone="secondary"
@@ -145,7 +145,7 @@ export default function Landing() {
               {mapCoverage.toLocaleString()} {lang === "zh" ? t("landing.coverage.points") : "points"}
             </span>
             <span className="pill px-3 py-1">
-              {t("landing.coverage.min")} {geo?.meta?.TDS_gL?.min?.toFixed?.(1) ?? "–"} g/L
+              {t("landing.coverage.min")} {geo?.meta?.TDS_gL?.min?.toFixed?.(1) ?? "–"} g L⁻¹
             </span>
             <span className="pill px-3 py-1">
               {t("landing.coverage.max")} {geo?.meta?.Pred_Selectivity?.max?.toFixed?.(2) ?? "–"}

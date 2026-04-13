@@ -9,16 +9,16 @@ import { FlaskConical, Sparkles, Waves, Info, Wand2 } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 
 const fields: { key: string; label: string; placeholder?: string }[] = [
-  { key: "Li_gL", label: "Li (g/L)", placeholder: "0.05" },
-  { key: "Mg_gL", label: "Mg (g/L)", placeholder: "8.2" },
-  { key: "Na_gL", label: "Na (g/L)", placeholder: "95" },
-  { key: "K_gL", label: "K (g/L)", placeholder: "3.1" },
-  { key: "Ca_gL", label: "Ca (g/L)", placeholder: "1.8" },
-  { key: "SO4_gL", label: "SO₄ (g/L)", placeholder: "6.4" },
-  { key: "Cl_gL", label: "Cl (g/L)", placeholder: "110" },
-  { key: "TDS_gL", label: "TDS (g/L)", placeholder: "240" },
-  { key: "MLR", label: "MLR", placeholder: "4.5" },
-  { key: "Light_kW_m2", label: "Light (kW/m²)", placeholder: "0.22" },
+  { key: "Li_gL", label: "Li⁺ (g L⁻¹)", placeholder: "0.05" },
+  { key: "Mg_gL", label: "Mg²⁺ (g L⁻¹)", placeholder: "8.2" },
+  { key: "Na_gL", label: "Na⁺ (g L⁻¹)", placeholder: "95" },
+  { key: "K_gL", label: "K⁺ (g L⁻¹)", placeholder: "3.1" },
+  { key: "Ca_gL", label: "Ca²⁺ (g L⁻¹)", placeholder: "1.8" },
+  { key: "SO4_gL", label: "SO₄²⁻ (g L⁻¹)", placeholder: "6.4" },
+  { key: "Cl_gL", label: "Cl⁻ (g L⁻¹)", placeholder: "110" },
+  { key: "TDS_gL", label: "TDS (g L⁻¹)", placeholder: "240" },
+  { key: "MLR", label: "Mg²⁺/Li⁺ ratio", placeholder: "4.5" },
+  { key: "Light_kW_m2", label: "Solar irradiance (kW m⁻²)", placeholder: "0.22" },
 ];
 
 const exampleValues: Record<string, string> = {
@@ -148,13 +148,13 @@ export default function SinglePrediction() {
               />
               <StatCard
                 label={t("single.stat.crystallization")}
-                value={`${predictions.Li_Crystallization_mg_m2_h.toFixed(3)} mg/m²·h`}
+                value={`${predictions.Li_Crystallization_mg_m2_h.toFixed(3)} mg m⁻² h⁻¹`}
                 icon={<FlaskConical size={20} />}
                 tone="secondary"
               />
               <StatCard
                 label={t("single.stat.evap")}
-                value={`${predictions.Evap_kg_m2_h.toFixed(3)} kg/m²·h`}
+                value={`${predictions.Evap_kg_m2_h.toFixed(3)} kg m⁻² h⁻¹`}
                 icon={<Waves size={20} />}
                 tone="success"
               />

@@ -36,6 +36,7 @@ from src.constants import (
     BRINE_FEATURE_COLUMNS,
     EXPERIMENTAL_FEATURE_COLUMNS,
     EXPERIMENTAL_TARGET_COLUMNS,
+    display_label,
 )
 from src.features.scaler import destandardize_preserve_nan, get_stats, load_scaler
 from src.models.finetune_regression import (
@@ -102,6 +103,7 @@ def run_mae_pretrain_evaluation() -> dict:
 
     # Bar chart
     names = [FEATURE_NAMES[r.feature_index] for r in drop_results]
+    labels = [display_label(n) for n in names]
     mses = [r.mse for r in drop_results]
     colors = ["#e74c3c" if n == "TDS_gL" else "#3498db" for n in names]
 
@@ -110,12 +112,12 @@ def run_mae_pretrain_evaluation() -> dict:
         range(len(names)), mses, color=colors, edgecolor="white", linewidth=0.5
     )
     ax.set_xticks(range(len(names)))
-    ax.set_xticklabels(names, rotation=45, ha="right", fontsize=9)
-    ax.set_ylabel("Reconstruction MSE (normalized scale)")
-    ax.set_title("MAE Per-Feature Reconstruction Error")
+    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=9)
+    ax.set_ylabel("Reconstruction MSE (normalised scale)")
+    ax.set_title("Per-feature reconstruction error (MAE)")
     ax.legend(
         [bars[names.index("TDS_gL")], bars[0]],
-        ["TDS_gL (focus)", "Other features"],
+        [display_label("TDS_gL") + " (focus)", "Other features"],
         loc="upper right",
     )
     for i, (v, n_obs) in enumerate(zip(mses, [r.n for r in drop_results])):
@@ -137,9 +139,9 @@ def run_mae_pretrain_evaluation() -> dict:
         lo = min(true_vals.min(), pred_vals.min())
         hi = max(true_vals.max(), pred_vals.max())
         ax.plot([lo, hi], [lo, hi], "r--", linewidth=1, label="y=x")
-        ax.set_xlabel(f"True {fname} (normalized)")
-        ax.set_ylabel(f"Predicted {fname} (normalized)")
-        ax.set_title(f"MAE Reconstruction: {fname}")
+        ax.set_xlabel(f"True {display_label(fname)} (normalised)")
+        ax.set_ylabel(f"Predicted {display_label(fname)} (normalised)")
+        ax.set_title(f"MAE reconstruction: {display_label(fname)}")
         ax.legend()
         fig.tight_layout()
         fig.savefig(MAE_PRETRAIN_DIR / f"feature_true_vs_pred_{fname}.png", dpi=150)
@@ -213,11 +215,11 @@ def run_mae_pretrain_evaluation() -> dict:
     }
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(range(1, epochs + 1), train_losses, label="Train Loss", color="#3498db")
-    ax.plot(range(1, epochs + 1), val_losses, label="Val Loss", color="#e74c3c")
+    ax.plot(range(1, epochs + 1), train_losses, label="Train loss", color="#3498db")
+    ax.plot(range(1, epochs + 1), val_losses, label="Validation loss", color="#e74c3c")
     ax.set_xlabel("Epoch")
-    ax.set_ylabel("Reconstruction Loss (MSE)")
-    ax.set_title("MAE Pretraining: Train vs Validation Loss")
+    ax.set_ylabel("Reconstruction loss (MSE)")
+    ax.set_title("MAE pre-training loss curve")
     ax.legend()
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
@@ -256,9 +258,9 @@ def run_mae_pretrain_evaluation() -> dict:
             s=15,
             color=color,
         )
-    ax.set_xlabel("t-SNE Dimension 1")
-    ax.set_ylabel("t-SNE Dimension 2")
-    ax.set_title("MAE Latent Space (colored by water type)")
+    ax.set_xlabel("t-SNE dimension 1")
+    ax.set_ylabel("t-SNE dimension 2")
+    ax.set_title("MAE latent space (coloured by water type)")
     ax.legend(fontsize=8, loc="best")
     fig.tight_layout()
     fig.savefig(MAE_PRETRAIN_DIR / "latent_space_tsne.png", dpi=150)
@@ -378,12 +380,12 @@ def run_regression_evaluation() -> dict:
         ax.plot(
             [lo - margin, hi + margin], [lo - margin, hi + margin], "r--", linewidth=1
         )
-        ax.set_xlabel(f"True {tname}")
-        ax.set_ylabel(f"Predicted {tname}")
+        ax.set_xlabel(f"Measured {display_label(tname)}")
+        ax.set_ylabel(f"Predicted {display_label(tname)}")
         m = metrics[tname]
-        ax.set_title(f"{tname}\nR2={m['R2']:.3f}  RMSE={m['RMSE']:.4f}")
+        ax.set_title(f"{display_label(tname)}\n$R^2$={m['R2']:.3f}  RMSE={m['RMSE']:.4f}")
         ax.grid(True, alpha=0.3)
-    fig.suptitle("LOO-CV: Predicted vs True (de-normalized)", fontsize=13, y=1.02)
+    fig.suptitle("Leave-one-out CV: predicted vs measured", fontsize=13, y=1.02)
     fig.tight_layout()
     fig.savefig(REGRESSION_DIR / "loo_cv_scatter.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -479,12 +481,12 @@ def run_regression_evaluation() -> dict:
             )
         ax.set_xticks(x_pos + width)
         ax.set_xticklabels(
-            [t.replace("_", "\n") for t in TARGET_NAMES], fontsize=7, ha="center"
+            [display_label(t) for t in TARGET_NAMES], fontsize=6, ha="center"
         )
         ax.set_title(metric_name)
         ax.legend(fontsize=8)
         ax.grid(True, alpha=0.3, axis="y")
-    fig.suptitle("Baseline Comparison (LOO-CV)", fontsize=13, y=1.02)
+    fig.suptitle("Baseline comparison (leave-one-out CV)", fontsize=13, y=1.02)
     fig.tight_layout()
     fig.savefig(
         REGRESSION_DIR / "baseline_comparison.png", dpi=150, bbox_inches="tight"
