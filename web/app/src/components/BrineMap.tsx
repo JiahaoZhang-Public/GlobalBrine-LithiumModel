@@ -140,7 +140,7 @@ export default function BrineMap({
           <p className="font-semibold">{hover.properties?.Brine || (lang === "zh" ? t("map.sample") : "Sample")}</p>
           <p className="text-slate-300">
             {hover.properties?.Location} • MLR {hover.properties?.MLR ?? "–"} • TDS{" "}
-            {hover.properties?.TDS_gL ?? "–"} g/L
+            {hover.properties?.TDS_gL ?? "–"} g L⁻¹
           </p>
           <p className="text-slate-200 mt-1">
             {variable}: {hover.properties?.[variable]?.toFixed?.(3) ?? "–"}

@@ -382,7 +382,7 @@ def main() -> None:
     legend = ax.legend(
         handles,
         sel_labels,
-        title="Li+/Mg2+ selectivity",
+        title=r"Li$^+$/Mg$^{2+}$ selectivity",
         loc="lower left",
         bbox_to_anchor=(0.02, 0.02),
         frameon=True,

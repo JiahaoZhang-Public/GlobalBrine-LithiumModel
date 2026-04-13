@@ -41,7 +41,7 @@ export default function MapExplorer() {
         label: t("map.meta.tds"),
         value: `${data.meta?.TDS_gL?.min?.toFixed?.(1) ?? "–"} – ${
           data.meta?.TDS_gL?.max?.toFixed?.(1) ?? "–"
-        } g/L`,
+        } g L⁻¹`,
       },
       {
         label: t("map.meta.mlr"),
@@ -100,7 +100,7 @@ export default function MapExplorer() {
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-slate-100">
           <RangeInput
-            label="TDS range (g/L)"
+            label="TDS range (g L⁻¹)"
             value={tdsRange}
             onChange={setTdsRange}
             min={data.meta?.TDS_gL?.min ?? 0}

@@ -49,7 +49,7 @@ export default function ModelPage() {
             {t("model.scalars")}
           </p>
           <p className="text-sm mt-1 text-slate-200">
-            Inputs (g/L, kW/m²): {data.feature_schema.join(", ")}
+            Inputs (g L⁻¹, kW m⁻²): {data.feature_schema.join(", ")}
           </p>
           <p className="text-xs text-slate-400 mt-1">Outputs: {data.targets.join(", ")}</p>
         </div>
